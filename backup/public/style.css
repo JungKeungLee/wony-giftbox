@@ -1,0 +1,261 @@
+/* style.css
+   화면 디자인을 담당하는 파일입니다.
+   PC와 모바일 모두에서 보기 편하도록 반응형(media query)으로 작성했습니다. (요구사항 17) */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  background: #f2f4f7;
+  color: #222;
+}
+
+.container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 20px 16px 60px;
+}
+
+/* ---------- 상단 헤더 ---------- */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.header h1 {
+  font-size: 22px;
+  margin: 0;
+}
+
+.mode-badge {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.mode-badge.mode-test {
+  background: #fff3cd;
+  color: #8a6d00;
+}
+
+.mode-badge.mode-live {
+  background: #ffdada;
+  color: #c00000;
+}
+
+/* ---------- SOOP 연결 오류 배너 ---------- */
+.soop-error {
+  background: #fff0f0;
+  border: 1px solid #ffb3b3;
+  color: #c00000;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin: 0 0 16px;
+}
+
+/* ---------- 요약 정보 (전체 별풍선 / 참여 인원) ---------- */
+.summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.summary-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.summary-label {
+  display: block;
+  font-size: 13px;
+  color: #777;
+  margin-bottom: 6px;
+}
+
+.summary-value {
+  display: block;
+  font-size: 24px;
+  font-weight: bold;
+  color: #ff6a00;
+}
+
+/* ---------- 컨트롤 영역 (초기화 버튼 / 테스트 폼) ---------- */
+.controls {
+  margin-bottom: 24px;
+}
+
+.btn {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.btn-danger {
+  background: #ff4d4f;
+  color: #fff;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.btn-danger:hover {
+  background: #e04345;
+}
+
+.btn-primary {
+  background: #4a7bff;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: #3a63d9;
+}
+
+.test-form {
+  background: #fff;
+  border: 1px dashed #c9d3e0;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.test-form h2 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+
+.test-form-desc {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #888;
+}
+
+.test-form-row {
+  display: flex;
+  gap: 8px;
+}
+
+.test-form-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #d7dde5;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+/* ---------- 순위 목록 ---------- */
+.ranking-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rank-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border-radius: 10px;
+  padding: 12px 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.rank-number {
+  flex-shrink: 0;
+  width: 32px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 16px;
+  color: #555;
+}
+
+.rank-nickname {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rank-count {
+  flex-shrink: 0;
+  font-weight: bold;
+  color: #ff6a00;
+}
+
+/* 1~3위는 특별한 디자인으로 강조합니다. (요구사항 7) */
+.rank-item.rank-1 {
+  background: linear-gradient(135deg, #fff6d8, #ffe38a);
+  border: 1px solid #f0c94a;
+  transform: scale(1.03);
+}
+
+.rank-item.rank-2 {
+  background: linear-gradient(135deg, #f3f5f8, #dfe4ea);
+  border: 1px solid #c3cad4;
+}
+
+.rank-item.rank-3 {
+  background: linear-gradient(135deg, #fbe9dd, #f0c7a8);
+  border: 1px solid #d9a878;
+}
+
+.rank-item.rank-1 .rank-number,
+.rank-item.rank-2 .rank-number,
+.rank-item.rank-3 .rank-number {
+  font-size: 22px;
+}
+
+.rank-item.rank-1 .rank-nickname {
+  font-size: 17px;
+}
+
+.empty-message {
+  text-align: center;
+  color: #999;
+  padding: 30px 0;
+}
+
+/* ---------- 모바일 화면 대응 ---------- */
+@media (max-width: 480px) {
+  .header h1 {
+    font-size: 18px;
+  }
+
+  .summary-value {
+    font-size: 20px;
+  }
+
+  .test-form-row {
+    flex-direction: column;
+  }
+
+  .test-form-row .btn {
+    width: 100%;
+  }
+
+  .rank-nickname {
+    font-size: 14px;
+  }
+}

@@ -1,0 +1,379 @@
+/* style.css
+   OBS 브라우저 소스용 "도전미션 별풍선 TOP5" 오버레이 디자인입니다.
+   블랙 + 골드 테마의 글래스모피즘 HUD 스타일로 구성했으며,
+   1920x1080 방송 화면 기준 고정 크기로 제작되어 반응형 처리는 하지 않습니다. */
+
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
+
+:root {
+  /* 색상 */
+  --c-bg-black: #07070a;
+  --c-panel: rgba(8, 8, 10, 0.26);
+  --c-panel-border: rgba(232, 191, 106, 0.28);
+  --c-recessed: rgba(0, 0, 0, 0.28);
+
+  --c-text: #f5f1e6;
+  --c-text-muted: rgba(245, 241, 230, 0.6);
+
+  --c-gold-light: #fff3d1;
+  --c-gold: #e8bf6a;
+  --c-gold-deep: #a9772c;
+  --c-gold-gradient: linear-gradient(180deg, var(--c-gold-light) 0%, var(--c-gold) 45%, var(--c-gold-deep) 100%);
+
+  --c-silver-light: #f6f8fa;
+  --c-silver: #c6ccd3;
+  --c-silver-deep: #868d96;
+  --c-silver-gradient: linear-gradient(180deg, var(--c-silver-light) 0%, var(--c-silver) 45%, var(--c-silver-deep) 100%);
+
+  --c-bronze-light: #f2c9a0;
+  --c-bronze: #cd8a4c;
+  --c-bronze-deep: #8a5a2e;
+  --c-bronze-gradient: linear-gradient(180deg, var(--c-bronze-light) 0%, var(--c-bronze) 45%, var(--c-bronze-deep) 100%);
+
+  --c-gold-rich: #f4c430;
+
+  /* 레이아웃 */
+  --panel-width: 560px;
+  --radius-lg: 22px;
+  --radius-md: 14px;
+  --radius-sm: 999px;
+
+  --font-base: 'Pretendard', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: transparent;
+  font-family: var(--font-base);
+  color: var(--c-text);
+}
+
+.container {
+  width: var(--panel-width);
+  margin: 40px auto 0;
+  padding: 0 16px;
+}
+
+/* ---------- HUD 패널 (전체를 감싸는 유리 카드) ---------- */
+.hud-panel {
+  position: relative;
+  background: var(--c-panel);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid var(--c-panel-border);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 20px 45px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  padding: 16px 20px 18px;
+  animation: panelGlow 5s ease-in-out infinite;
+}
+
+@keyframes panelGlow {
+  0%, 100% { box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 0 rgba(232, 191, 106, 0); }
+  50%      { box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 26px rgba(232, 191, 106, 0.16); }
+}
+
+/* missionTitle: app.js가 경고 문구 등을 써 넣는 대상이라 DOM에는 남겨두되 화면에는 표시하지 않습니다. */
+.hud-title {
+  display: none;
+}
+
+/* ---------- 목표 진행률 영역 ---------- */
+.progress-card {
+  background: var(--c-recessed);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+  padding: 12px 16px 10px;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
+  margin-bottom: 12px;
+}
+
+.progress-card.goal-reached {
+  border-color: rgba(232, 191, 106, 0.45);
+}
+
+.progress-top {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.progress-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 0 8px;
+}
+
+.progress-stat + .progress-stat {
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-caption {
+  font-size: 11px;
+  color: var(--c-text-muted);
+  letter-spacing: 0.04em;
+}
+
+.stat-value {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--c-text);
+}
+
+.stat-value .unit {
+  margin-left: 2px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--c-text-muted);
+}
+
+/* 두껍고 입체감 있는 프로그레스 바 */
+.progress-bar-track {
+  position: relative;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.25));
+  border: 1px solid rgba(232, 191, 106, 0.22);
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.6), inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  position: relative;
+  height: 100%;
+  width: 0%;
+  border-radius: var(--radius-sm);
+  /* 노란색 ~ 골드 그라데이션 */
+  background: linear-gradient(90deg, #fff3c4 0%, #f5c451 50%, #d89b2e 100%);
+  box-shadow:
+    0 0 10px rgba(232, 191, 106, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -4px 6px rgba(0, 0, 0, 0.3);
+  transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 45도 사선 줄무늬가 왼쪽 -> 오른쪽으로 흐르는 애니메이션 */
+.progress-bar-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.35) 0,
+    rgba(255, 255, 255, 0.35) 10px,
+    rgba(255, 255, 255, 0) 10px,
+    rgba(255, 255, 255, 0) 20px
+  );
+  background-size: 28px 28px;
+  animation: stripeFlow 1s linear infinite;
+}
+
+@keyframes stripeFlow {
+  from { background-position: 0 0; }
+  to   { background-position: 28px 0; }
+}
+
+/* 진행 중인 바 끝부분의 은은한 glow */
+.progress-bar-fill::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  bottom: -8px;
+  right: -6px;
+  width: 30px;
+  background: radial-gradient(circle, rgba(255, 230, 160, 0.9), rgba(255, 230, 160, 0) 70%);
+  filter: blur(3px);
+}
+
+.progress-card.goal-reached .progress-bar-fill {
+  background: linear-gradient(90deg, #d9ffe9 0%, #34d399 50%, #0f8f63 100%);
+  box-shadow:
+    0 0 18px rgba(52, 211, 153, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.progress-card.goal-reached .progress-bar-fill::before {
+  background: radial-gradient(circle, rgba(150, 255, 210, 0.9), rgba(150, 255, 210, 0) 70%);
+}
+
+/* 진행률 숫자 - 바 중앙에 고정 오버레이 */
+.progress-bar-percent {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #fffaf0;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85), 0 0 8px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+.progress-card.goal-reached .progress-bar-percent {
+  font-size: 12px;
+}
+
+.progress-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--c-text-muted);
+}
+
+.progress-goal-label {
+  font-weight: 700;
+  color: var(--c-text);
+}
+
+.progress-bottom strong {
+  color: var(--c-text);
+  font-weight: 700;
+}
+
+/* ---------- 숫자 변경 애니메이션 ---------- */
+.value-pop {
+  animation: valuePop 0.4s ease;
+}
+
+@keyframes valuePop {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.16); filter: brightness(1.35); }
+  100% { transform: scale(1); }
+}
+
+/* ---------- TOP5 순위 카드 (세로 목록) ---------- */
+.ranking-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rank-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 18px;
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.3);
+  animation: cardFadeIn 0.5s ease both;
+}
+
+.rank-item:nth-child(2) { animation-delay: 0.06s; }
+.rank-item:nth-child(3) { animation-delay: 0.12s; }
+.rank-item:nth-child(4) { animation-delay: 0.18s; }
+.rank-item:nth-child(5) { animation-delay: 0.24s; }
+
+@keyframes cardFadeIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.rank-number {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 68px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 800;
+  color: #1a1408;
+  /* 4~5위처럼 메달 색상(금/은/동)이 없는 순위의 기본 배지 배경입니다. */
+  background: rgba(226, 228, 232, 0.85);
+}
+
+.rank-nickname {
+  flex: 1;
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--c-text);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rank-count {
+  flex-shrink: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--c-text-muted);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+/* 1위: Gold */
+.rank-item.rank-1 {
+  padding: 12px 18px;
+  background: linear-gradient(90deg, rgba(232, 191, 106, 0.18), rgba(232, 191, 106, 0.04));
+  border-color: rgba(232, 191, 106, 0.5);
+  box-shadow: 0 10px 26px rgba(232, 191, 106, 0.22), 0 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+.rank-item.rank-1 .rank-number {
+  background: var(--c-gold-gradient);
+  box-shadow: 0 0 12px rgba(232, 191, 106, 0.6);
+}
+
+.rank-item.rank-1 .rank-nickname {
+  font-size: 18px;
+}
+
+.rank-item.rank-1 .rank-count {
+  color: var(--c-gold-rich);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7), 0 0 10px rgba(244, 196, 48, 0.35);
+}
+
+/* 2위: Silver */
+.rank-item.rank-2 .rank-number {
+  background: var(--c-silver-gradient);
+  box-shadow: 0 0 10px rgba(198, 204, 211, 0.4);
+}
+
+.rank-item.rank-2 .rank-count {
+  color: var(--c-silver);
+}
+
+/* 3위: Bronze */
+.rank-item.rank-3 .rank-number {
+  background: var(--c-bronze-gradient);
+  box-shadow: 0 0 10px rgba(205, 138, 76, 0.4);
+}
+
+.rank-item.rank-3 .rank-count {
+  color: var(--c-bronze);
+}
+
+.empty-message {
+  text-align: center;
+  color: var(--c-text-muted);
+  padding: 26px 0 6px;
+  font-size: 14px;
+}

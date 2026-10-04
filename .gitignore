@@ -1,0 +1,13 @@
+# 의존성 패키지 (npm install로 다시 설치 가능하므로 저장소에 포함하지 않습니다)
+node_modules/
+
+# 실제 환경 변수 파일 (포트, 스트리머 닉네임 등 - .env.example만 공유합니다)
+.env
+
+# 로그 파일
+*.log
+
+# OS / 에디터 관련 파일
+.DS_Store
+Thumbs.db
+.vscode/

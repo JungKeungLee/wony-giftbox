@@ -1,0 +1,17 @@
+{
+  "name": "soop-challenge-leaderboard",
+  "version": "1.0.0",
+  "description": "SOOP 도전미션 별풍선 실시간 순위표 웹서비스",
+  "main": "server.js",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  }
+}

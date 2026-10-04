@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>운영자 설정 (스트리머 설정 화면)</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!--
+    [스트리머 설정 화면(PC/모바일 공통)]
+    SOOP 확장 프로그램 등록 시 "스트리머 설정 화면" 필드에 이 파일(settings.html)을 입력하세요.
+
+    이 페이지는 "운영자(스트리머 본인 또는 관리자) 전용" 페이지입니다.
+    일반 시청자가 보는 broadcast.html과는 분리되어 있고, 아래 4가지를 관리합니다.
+      1) 방송(SOOP) 연결 상태
+      2) 테스트 후원 추가
+      3) 순위 초기화
+      4) 설정 값 확인
+
+    왜 분리했는가?
+    - SOOP Chat SDK는 공식 예제 기준으로 브라우저에서 Client Secret / Access Token을 직접 사용합니다.
+      시청자가 보는 화면에 이 값이 노출되면 개발자 도구로 누구나 훔쳐볼 수 있으므로, 이 화면에서만 다룹니다.
+    - 순위 초기화/테스트 후원도 아무나 할 수 있으면 안 되는 "운영" 기능이라 여기로 옮겼습니다.
+      (관련 API도 서버에서 운영자 키(OPERATOR_TOKEN)로 보호됩니다)
+
+    이 페이지의 주소는 남에게 공유하지 마세요. (연결/운영 작업을 하는 사람만 열어야 합니다)
+  -->
+  <div class="container">
+    <header class="header">
+      <h1>🛠️ 운영자 설정</h1>
+    </header>
+
+    <section id="operatorKeyForm" class="test-form">
+      <h2>운영자 키 입력</h2>
+      <p class="test-form-desc">.env의 OPERATOR_TOKEN과 같은 값을 입력하세요. 이 브라우저에만 저장됩니다.</p>
+      <div class="test-form-row">
+        <input id="operatorKeyInput" type="password" placeholder="운영자 키" />
+        <button id="operatorKeySave" type="button" class="btn btn-primary">저장</button>
+      </div>
+    </section>
+
+    <p id="connectErrorBanner" class="soop-error" hidden></p>
+    <p id="soopErrorBanner" class="soop-error" hidden></p>
+
+    <!-- 1) 방송(SOOP) 연결 상태 -->
+    <section class="summary">
+      <div class="summary-card">
+        <span class="summary-label">SDK 로드</span>
+        <span id="sdkStatus" class="summary-value">확인 중</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-label">연결 상태</span>
+        <span id="connectionStatus" class="summary-value">대기 중</span>
+      </div>
+    </section>
+    <section class="controls">
+      <button id="loginButton" type="button" class="btn btn-primary" hidden>🔑 SOOP 로그인해서 연결하기</button>
+    </section>
+
+    <!-- 2) 테스트 후원 -->
+    <section class="controls">
+      <form id="testForm" class="test-form">
+        <h2>🧪 테스트 후원 추가</h2>
+        <p class="test-form-desc">SOOP 연결 없이 닉네임과 별풍선 개수를 입력해서 순위표를 테스트할 수 있습니다.</p>
+        <div class="test-form-row">
+          <input id="testNickname" type="text" placeholder="닉네임" maxlength="20" required />
+          <input id="testCount" type="number" placeholder="별풍선 개수" min="1" required />
+          <button type="submit" class="btn btn-primary">추가하기</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- 3) 순위 초기화 -->
+    <section class="controls">
+      <button id="resetButton" type="button" class="btn btn-danger">🆕 새 도전미션 시작 (순위 초기화)</button>
+    </section>
+
+    <!-- 현재 순위 미리보기 (모드 배지는 soop.js가 채웁니다) -->
+    <section class="summary">
+      <div class="summary-card">
+        <span class="summary-label">전체 별풍선</span>
+        <span id="totalStarCount" class="summary-value">0 개</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-label">참여 인원</span>
+        <span id="participantCount" class="summary-value">0 명</span>
+      </div>
+    </section>
+    <section class="ranking">
+      <ol id="rankingList" class="ranking-list"></ol>
+      <p id="emptyMessage" class="empty-message" hidden>아직 후원 내역이 없습니다.</p>
+    </section>
+
+    <!-- 4) 설정 값 확인 -->
+    <section class="test-form">
+      <h2>⚙️ 설정</h2>
+      <p>화면에 표시할 순위 수(TOP_N): <strong id="settingTopN">-</strong></p>
+      <p>SOOP Client ID: <strong id="settingClientId">-</strong></p>
+    </section>
+
+    <section class="ranking">
+      <h2>수신 이벤트 로그</h2>
+      <ul id="eventLog" class="ranking-list"></ul>
+      <p id="eventLogEmpty" class="empty-message">아직 수신된 이벤트가 없습니다.</p>
+    </section>
+
+    <p style="text-align:center; margin-top: 24px;">
+      <a href="/broadcast.html">→ 공개 송출 화면 미리보기</a>
+    </p>
+  </div>
+
+  <!--
+    SOOP Chat SDK 필수 스크립트입니다. (SOOP 공식 개발자 문서 - Chat SDK > 제작하기 > SDK 사용하기 항목)
+  -->
+  <script
+    src="https://static.sooplive.com/asset/app/chat-sdk/sooplive-chat-sdk.js"
+    defer
+    onerror="window.__soopSdkLoadFailed = true;"
+  ></script>
+  <script src="soop.js" defer></script>
+  <script src="app.js" defer></script>
+  <script src="settings.js" defer></script>
+</body>
+</html>

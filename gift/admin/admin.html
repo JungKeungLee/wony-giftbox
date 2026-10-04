@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>선물상자 관리자</title>
+  <link rel="stylesheet" href="/admin-assets/admin.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-title">🎁 선물상자 관리자 <span class="round-chip" id="roundChip">-</span></div>
+    <div class="topbar-right">
+      <span class="status-badge" id="statusBadge">-</span>
+      <span class="live-dot" id="liveDot" title="실시간 연결 상태"></span>
+      <a class="btn btn-ghost" href="/overlay" target="_blank" rel="noopener">오버레이 열기 ↗</a>
+      <button class="btn btn-ghost" id="logoutBtn" type="button">로그아웃</button>
+    </div>
+  </header>
+
+  <div class="toast-host" id="toastHost" aria-live="polite"></div>
+
+  <main class="layout">
+    <!-- ======================= 왼쪽: 진행 / 설정 / 조작 ======================= -->
+    <div class="col">
+
+      <section class="card card-progress">
+        <div class="progress-head">
+          <div>
+            <div class="label">현재 개수 / 목표 개수</div>
+            <div class="progress-amount"><strong id="currentAmount">0</strong> / <span id="targetAmount">0</span></div>
+          </div>
+          <div class="progress-percent" id="progressPercent">0%</div>
+        </div>
+        <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+        <div class="progress-meta" id="progressMeta"></div>
+
+        <div class="flow-actions">
+          <button class="btn btn-primary" id="startBtn" type="button">▶ 이벤트 시작</button>
+          <button class="btn" id="stopBtn" type="button">⏸ 이벤트 종료 (수집 중지)</button>
+          <button class="btn btn-primary btn-big" id="drawBtn" type="button">🎡 다음 추첨</button>
+          <button class="btn btn-primary btn-big" id="nextRoundBtn" type="button">🎁 다음 선물상자 시작</button>
+        </div>
+        <p class="hint" id="flowHint"></p>
+      </section>
+
+      <section class="card">
+        <h2>이벤트 설정</h2>
+        <form class="row" id="settingsForm">
+          <label class="field">
+            <span>목표 개수</span>
+            <input type="number" id="targetInput" min="1" step="1" required />
+          </label>
+          <button class="btn" type="submit">목표 저장</button>
+        </form>
+        <p class="hint">응모권: 해당 회차 누적 후원 100개당 1장 (별풍선 + 도전미션 + 대결미션 합산)</p>
+        <p class="hint">중복 당첨 불가: 같은 회차에서 한 번 당첨된 사람은 다음 추첨 대상에서 자동으로 제외됩니다. (고정 규칙)</p>
+      </section>
+
+      <section class="card">
+        <h2>상품 설정 <span class="sub" id="winnerCountLabel">당첨 인원 0명</span></h2>
+        <p class="hint">위에서부터 1등, 2등… 순서입니다. 수량이 2 이상이면 같은 상품으로 여러 명을 뽑습니다.</p>
+        <div class="prize-list" id="prizeList"></div>
+        <div class="row">
+          <button class="btn btn-ghost" id="addPrizeBtn" type="button">+ 상품 추가</button>
+          <button class="btn btn-primary" id="savePrizesBtn" type="button">상품 저장</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>테스트 후원</h2>
+        <form class="donation-form" id="testForm">
+          <label class="field"><span>테스트 닉네임</span><input id="testNickname" maxlength="50" value="테스트1" required /></label>
+          <div class="field">
+            <span>후원 유형</span>
+            <div class="segmented" id="testType">
+              <label><input type="radio" name="testType" value="STAR" checked /><span>⭐ 별풍선</span></label>
+              <label><input type="radio" name="testType" value="CHALLENGE" /><span>🔥 도전미션</span></label>
+              <label><input type="radio" name="testType" value="BATTLE" /><span>⚔️ 대결미션</span></label>
+            </div>
+          </div>
+          <label class="field"><span>후원 개수</span><input type="number" id="testAmount" min="1" step="1" value="100" required /></label>
+          <div class="row quick">
+            <button class="btn btn-ghost" type="button" data-quick="10">10</button>
+            <button class="btn btn-ghost" type="button" data-quick="50">50</button>
+            <button class="btn btn-ghost" type="button" data-quick="99">99</button>
+            <button class="btn btn-ghost" type="button" data-quick="100">100</button>
+            <button class="btn btn-ghost" type="button" data-quick="500">500</button>
+          </div>
+          <div class="row">
+            <button class="btn btn-primary" type="submit">테스트 후원 보내기</button>
+            <button class="btn btn-ghost" type="button" id="randomTestBtn">랜덤 5건</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>수동 관리</h2>
+        <details open>
+          <summary>후원 수동 등록 (실제 후원 누락 시)</summary>
+          <form class="donation-form" id="manualForm">
+            <label class="field"><span>닉네임</span><input id="manualNickname" maxlength="50" required /></label>
+            <label class="field"><span>후원자 ID <small>(선택, 있으면 ID 기준 합산)</small></span><input id="manualDonorId" maxlength="80" /></label>
+            <label class="field">
+              <span>후원 유형</span>
+              <select id="manualType">
+                <option value="STAR">별풍선</option>
+                <option value="CHALLENGE">도전미션</option>
+                <option value="BATTLE">대결미션</option>
+              </select>
+            </label>
+            <label class="field"><span>후원 개수</span><input type="number" id="manualAmount" min="1" step="1" required /></label>
+            <button class="btn btn-primary" type="submit">수동 등록</button>
+          </form>
+        </details>
+
+        <details>
+          <summary>현재 게이지 수정</summary>
+          <p class="hint">게이지 숫자만 바뀌고 후원 기록·응모권은 바뀌지 않습니다. 변경 내역은 로그에 남습니다.</p>
+          <form class="row" id="amountForm">
+            <label class="field"><span>새 게이지 값</span><input type="number" id="amountInput" min="0" step="1" required /></label>
+            <button class="btn" type="submit">게이지 수정</button>
+          </form>
+        </details>
+
+        <div class="danger-zone">
+          <button class="btn btn-warn" id="forceOpenBtn" type="button">상자 강제 오픈</button>
+          <button class="btn btn-warn" id="forceRouletteBtn" type="button">룰렛 강제 실행</button>
+          <button class="btn btn-danger" id="resetRoundBtn" type="button">회차 초기화</button>
+        </div>
+        <p class="hint">회차 초기화: 현재 회차를 종료(기록은 보존)하고 0부터 새 회차를 준비합니다.</p>
+      </section>
+    </div>
+
+    <!-- ======================= 오른쪽: 현황 / 기록 ======================= -->
+    <div class="col">
+      <section class="card">
+        <h2>오버레이 미리보기 <span class="sub">OBS에는 /overlay 주소를 1920×1080으로 추가</span></h2>
+        <div class="preview-frame"><iframe src="/overlay" title="오버레이 미리보기" tabindex="-1"></iframe></div>
+      </section>
+
+      <section class="card" id="winnersCard">
+        <h2>당첨 결과 <span class="sub" id="drawProgress"></span></h2>
+        <ol class="winner-list" id="winnerList"></ol>
+      </section>
+
+      <section class="card">
+        <h2>현재 참여자 <span class="sub" id="participantSummary"></span></h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>닉네임</th><th>총 후원</th><th>별풍선</th><th>도전</th><th>대결</th><th>응모권</th><th>잔여</th></tr>
+            </thead>
+            <tbody id="donorTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>후원 내역 <span class="sub">최근 200건</span></h2>
+        <div class="table-wrap table-tall">
+          <table>
+            <thead>
+              <tr><th>시간</th><th>닉네임</th><th>유형</th><th>개수</th><th>상태</th><th></th></tr>
+            </thead>
+            <tbody id="donationTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>회차 기록 <button class="btn btn-ghost btn-sm" id="refreshRoundsBtn" type="button">새로고침</button></h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>회차</th><th>상태</th><th>목표</th><th>게이지</th><th>총 후원</th><th>참여자</th><th>당첨</th><th>시작</th><th>종료</th></tr>
+            </thead>
+            <tbody id="roundTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <details>
+          <summary>관리자 조작 로그 (현재 회차)</summary>
+          <ul class="log-list" id="logList"></ul>
+        </details>
+      </section>
+    </div>
+  </main>
+
+  <dialog class="modal" id="roundModal">
+    <div class="modal-head">
+      <h2 id="roundModalTitle">회차 상세</h2>
+      <button class="btn btn-ghost btn-sm" type="button" id="roundModalClose">닫기</button>
+    </div>
+    <div class="modal-body" id="roundModalBody"></div>
+  </dialog>
+
+  <script src="/admin-assets/admin.js" defer></script>
+</body>
+</html>

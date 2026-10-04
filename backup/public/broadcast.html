@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>도전미션 별풍선 순위표 (송출 화면)</title>
+  <link rel="stylesheet" href="style.css" />
+  <!--
+    [송출 화면(PC/모바일 공통)]
+    SOOP 확장 프로그램 등록 시 "송출 화면" 필드에 이 파일(broadcast.html)을 입력하세요.
+    OBS 브라우저 소스 등으로 방송 화면에 얹을 때 배경이 보이지 않도록 투명 배경으로 만들었습니다.
+    이 화면에는 시청자에게 보여줘도 되는 내용(순위표)만 있고, 테스트/초기화 같은 관리 기능은 없습니다.
+    (관리 기능은 settings.html에 있습니다)
+  -->
+  <style>
+    body {
+      background: transparent;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>🔥 도전미션 별풍선 순위표</h1>
+      <span id="modeBadge" class="mode-badge mode-test">🧪 테스트 모드</span>
+    </header>
+
+    <p id="soopErrorBanner" class="soop-error" hidden></p>
+
+    <section class="summary">
+      <div class="summary-card">
+        <span class="summary-label">전체 별풍선</span>
+        <span id="totalStarCount" class="summary-value">0 개</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-label">참여 인원</span>
+        <span id="participantCount" class="summary-value">0 명</span>
+      </div>
+    </section>
+
+    <section class="ranking">
+      <ol id="rankingList" class="ranking-list">
+        <!-- 순위 목록은 app.js가 실행될 때 자바스크립트로 채워줍니다. -->
+      </ol>
+      <p id="emptyMessage" class="empty-message" hidden>
+        아직 후원 내역이 없습니다. 도전미션 후원을 기다려주세요!
+      </p>
+    </section>
+  </div>
+
+  <script src="soop.js" defer></script>
+  <script src="app.js" defer></script>
+</body>
+</html>

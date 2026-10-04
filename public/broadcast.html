@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>도전미션 별풍선 TOP5</title>
+  <link rel="stylesheet" href="style.css" />
+  <!--
+    OBS 브라우저 소스 등에 그대로 얹을 수 있도록 배경을 투명하게 만들었습니다.
+    이 화면은 서버(server.js)가 SoopScope에서 조회해둔 결과만 받아서 보여줍니다.
+  -->
+</head>
+<body>
+  <div class="container">
+    <div class="hud-panel">
+      <!-- missionTitle: 화면에는 표시하지 않지만, ?bj= 파라미터가 없을 때 app.js가
+           경고 문구를 써 넣는 대상이라 요소 자체는 남겨둡니다. -->
+      <h1 class="hud-title" id="missionTitle">🔥 도전미션 별풍선 TOP5</h1>
+
+      <!-- 30만 개 목표 진행률 (진행 중인 모든 도전미션의 별풍선 총합 기준) -->
+      <section class="progress-card" id="progressCard">
+        <div class="progress-top">
+          <div class="progress-stat">
+            <span class="stat-caption">현재</span>
+            <span class="stat-value"><strong id="progressCurrent">0</strong><span class="unit">개</span></span>
+          </div>
+          <div class="progress-stat">
+            <span class="stat-caption">목표</span>
+            <span class="stat-value"><strong id="progressGoal">300,000</strong><span class="unit">개</span></span>
+          </div>
+        </div>
+
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" id="progressBarFill"></div>
+          <span class="progress-bar-percent" id="progressPercent">0%</span>
+        </div>
+
+        <div class="progress-bottom">
+          <span class="progress-goal-label" id="progressLabel">🎯 목표</span>
+          <span>남은 <strong id="progressRemaining">300,000</strong>개</span>
+        </div>
+      </section>
+
+      <section class="ranking">
+        <ol id="rankingList" class="ranking-list"></ol>
+        <p id="emptyMessage" class="empty-message" hidden>현재 진행 중인 도전미션이 없습니다.</p>
+      </section>
+    </div>
+  </div>
+
+  <script src="app.js" defer></script>
+</body>
+</html>

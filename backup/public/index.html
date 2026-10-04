@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SOOP 도전미션 별풍선 순위표</title>
+  <link rel="stylesheet" href="style.css" />
+  <!--
+    이 파일은 SOOP 확장 프로그램 등록 화면의 "기본 URL"이 가리키는 루트 경로입니다.
+    실제 화면은 두 곳으로 분리되어 있습니다.
+      - 송출 화면(시청자에게 보이는 화면): broadcast.html
+      - 스트리머 설정 화면(운영자 전용 화면): settings.html
+    자세한 등록 값과 이유는 README.md의 "SOOP Extension SDK 연결 위치" 항목을 확인하세요.
+  -->
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>🔥 SOOP 도전미션 별풍선 순위표</h1>
+    </header>
+
+    <section class="test-form">
+      <h2>이 서비스는 화면이 2개로 나뉘어 있습니다</h2>
+      <p class="test-form-desc">
+        시청자에게 보여줄 화면과, 운영자만 쓰는 관리 화면을 분리해서
+        SOOP 인증 정보가 시청자 화면에 노출되지 않도록 만들었습니다.
+      </p>
+      <ul class="ranking-list">
+        <li class="rank-item">
+          <span class="rank-nickname">📺 송출 화면 (OBS/방송용, 시청자 공개)</span>
+          <a class="btn btn-primary" href="/broadcast.html">열기</a>
+        </li>
+        <li class="rank-item">
+          <span class="rank-nickname">🛠️ 스트리머 설정 화면 (운영자 전용)</span>
+          <a class="btn btn-primary" href="/settings.html">열기</a>
+        </li>
+      </ul>
+    </section>
+  </div>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1920, initial-scale=1.0" />
+  <title>선물상자 오버레이</title>
+  <link rel="stylesheet" href="/overlay-assets/overlay.css" />
+  <!--
+    OBS 브라우저 소스 전용 화면입니다. (권장 크기 1920 x 1080, 배경 투명)
+    조회(GET /api/gift/state)와 실시간 수신(GET /api/gift/stream)만 하며,
+    관리자 기능(후원 등록, 초기화, 룰렛 실행)은 전혀 호출하지 않습니다.
+    주소 옵션: /overlay?pos=bl  (기본 게이지 위치: tl, tc, tr, bl, bc, br)
+  -->
+</head>
+<body>
+  <div class="stage" id="stage">
+
+    <!-- ① 기본 화면: 게이지 위젯 -->
+    <section class="idle-widget" id="idleWidget" hidden>
+      <div class="toast-area" id="toastArea"></div>
+      <div class="idle-panel">
+        <div class="mini-box" id="miniBox" aria-hidden="true">
+          <div class="gift gift--mini">
+            <div class="gift-lid"><div class="gift-bow"><span></span><span></span></div></div>
+            <div class="gift-body"></div>
+          </div>
+        </div>
+        <div class="idle-info">
+          <div class="idle-title">🎁 선물상자 <span class="idle-round" id="idleRound">1회차</span></div>
+          <div class="idle-amount">
+            <strong id="idleCurrent">0</strong><span class="idle-sep">/</span><span id="idleTarget">1,000</span>
+          </div>
+          <div class="gauge-track">
+            <div class="gauge-fill" id="gaugeFill"></div>
+            <div class="gauge-shine"></div>
+          </div>
+          <div class="idle-bottom">
+            <span>남은 <strong id="idleRemaining">1,000</strong>개</span>
+            <span class="idle-hint" id="idleHint">100개당 응모권 1장</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ② 목표 달성 → 선물상자 오픈 연출 -->
+    <section class="scene scene-opening" id="sceneOpening" hidden>
+      <div class="opening-rays" id="openingRays"></div>
+      <div class="opening-headline" id="openingHeadline">목표 달성!</div>
+      <div class="opening-box-wrap" id="openingBoxWrap">
+        <div class="gift gift--big" id="bigGift">
+          <div class="gift-lid"><div class="gift-bow"><span></span><span></span></div></div>
+          <div class="gift-body"></div>
+        </div>
+        <div class="opening-countdown" id="openingCountdown"></div>
+      </div>
+      <div class="opening-sub" id="openingSub"></div>
+      <div class="opening-flash" id="openingFlash"></div>
+    </section>
+
+    <!-- ③ 룰렛 -->
+    <section class="scene scene-roulette" id="sceneRoulette" hidden>
+      <header class="roulette-header">
+        <div class="roulette-title"><span class="emoji">🎁</span> 선물상자 당첨자 추첨</div>
+        <div class="roulette-chips">
+          <span class="chip" id="rouletteRound">1회차</span>
+          <span class="chip">참여자 <strong id="rouletteEntrants">0</strong>명</span>
+          <span class="chip">총 응모권 <strong id="rouletteTickets">0</strong>장</span>
+        </div>
+      </header>
+
+      <div class="roulette-body">
+        <aside class="roulette-side">
+          <div class="side-title">응모 현황</div>
+          <ol class="entrant-list" id="entrantList"></ol>
+        </aside>
+
+        <div class="wheel-wrap">
+          <div class="wheel-pointer"></div>
+          <canvas class="wheel" id="wheelCanvas" width="1240" height="1240"></canvas>
+          <div class="wheel-hub">🎁</div>
+        </div>
+
+        <aside class="roulette-side">
+          <div class="prize-card" id="prizeCard">
+            <div class="side-title">현재 상품</div>
+            <div class="prize-order" id="prizeOrder">1등</div>
+            <div class="prize-name" id="prizeName">-</div>
+            <div class="prize-slot" id="prizeSlot"></div>
+          </div>
+          <div class="side-title">당첨자</div>
+          <ol class="winner-mini-list" id="winnerMiniList"></ol>
+        </aside>
+      </div>
+
+      <div class="winner-banner" id="winnerBanner" hidden>
+        <div class="winner-banner-inner">
+          <div class="winner-name"><span id="winnerName"></span>님 당첨!</div>
+          <div class="winner-prize" id="winnerPrize"></div>
+          <div class="winner-odds" id="winnerOdds"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ④ 최종 결과 -->
+    <section class="scene scene-result" id="sceneResult" hidden>
+      <div class="result-panel">
+        <div class="result-title"><span class="emoji">🎁</span> 선물상자 결과</div>
+        <div class="result-round" id="resultRound">1회차</div>
+        <ol class="result-list" id="resultList"></ol>
+        <p class="result-empty" id="resultEmpty" hidden>응모권 보유자가 없어 이번 회차 당첨자가 없습니다.</p>
+      </div>
+    </section>
+
+    <canvas class="confetti" id="confettiCanvas"></canvas>
+  </div>
+
+  <script src="/overlay-assets/overlay.js" defer></script>
+</body>
+</html>

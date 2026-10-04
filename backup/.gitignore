@@ -1,0 +1,17 @@
+# 의존성 패키지 (npm install로 다시 설치 가능하므로 저장소에 포함하지 않습니다)
+node_modules/
+
+# 실제 환경 변수 파일 (포트, 비밀값 등 - .env.example만 공유합니다)
+.env
+
+# SQLite 데이터베이스 파일 (실행 시 자동 생성되며, 후원 데이터가 들어있어 공유하지 않습니다)
+data/*.db
+data/*.db-journal
+
+# 로그 파일
+*.log
+
+# OS / 에디터 관련 파일
+.DS_Store
+Thumbs.db
+.vscode/

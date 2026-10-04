@@ -1,0 +1,672 @@
+/* gift/overlay/overlay.css
+   OBS 브라우저 소스용 "선물상자" 오버레이입니다.
+   기존 public/style.css의 블랙 + 골드 글래스모피즘 테마를 그대로 이어받았고,
+   1920x1080 방송 화면 기준 고정 크기로 제작했습니다. 배경은 항상 투명합니다. */
+
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
+
+:root {
+  --c-panel: rgba(8, 8, 10, 0.55);
+  --c-panel-strong: rgba(8, 8, 10, 0.78);
+  --c-panel-border: rgba(232, 191, 106, 0.32);
+  --c-recessed: rgba(0, 0, 0, 0.35);
+
+  --c-text: #f5f1e6;
+  --c-text-muted: rgba(245, 241, 230, 0.65);
+
+  --c-gold-light: #fff3d1;
+  --c-gold: #e8bf6a;
+  --c-gold-deep: #a9772c;
+  --c-gold-gradient: linear-gradient(180deg, var(--c-gold-light) 0%, var(--c-gold) 45%, var(--c-gold-deep) 100%);
+
+  --c-box: #c2263f;
+  --c-box-deep: #7d1027;
+  --c-box-light: #ea4a63;
+
+  --c-star: #f4c430;
+  --c-challenge: #ff8a3d;
+  --c-battle: #6aa8ff;
+
+  --radius-lg: 22px;
+  --radius-md: 14px;
+  --font-base: 'Pretendard', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: transparent;
+  font-family: var(--font-base);
+  color: var(--c-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+[hidden] { display: none !important; }
+
+/* 금색 그라데이션 글씨(background-clip: text) 안에서도 이모지는 원래 색으로 보이게 합니다. */
+.emoji { color: #fff; -webkit-text-fill-color: initial; }
+
+.stage {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+}
+
+/* ===================== 선물상자 (CSS로 그림) ===================== */
+.gift {
+  --size: 120px;
+  position: relative;
+  width: var(--size);
+  height: var(--size);
+}
+
+.gift-body {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 0;
+  height: 62%;
+  border-radius: 0 0 calc(var(--size) * 0.06) calc(var(--size) * 0.06);
+  background:
+    linear-gradient(90deg, transparent 43%, var(--c-gold) 43%, var(--c-gold-light) 50%, var(--c-gold) 57%, transparent 57%),
+    linear-gradient(180deg, var(--c-box) 0%, var(--c-box-deep) 100%);
+  box-shadow: inset 0 calc(var(--size) * 0.04) 0 rgba(0, 0, 0, 0.25), inset calc(var(--size) * -0.05) 0 0 rgba(0, 0, 0, 0.18);
+}
+
+.gift-lid {
+  position: absolute;
+  left: 2%;
+  right: 2%;
+  top: 22%;
+  height: 20%;
+  z-index: 2;
+  border-radius: calc(var(--size) * 0.05);
+  background:
+    linear-gradient(90deg, transparent 43%, var(--c-gold) 43%, var(--c-gold-light) 50%, var(--c-gold) 57%, transparent 57%),
+    linear-gradient(180deg, var(--c-box-light) 0%, var(--c-box) 100%);
+  box-shadow: 0 calc(var(--size) * 0.03) calc(var(--size) * 0.04) rgba(0, 0, 0, 0.35);
+  transform-origin: 20% 100%;
+}
+
+.gift-bow {
+  position: absolute;
+  left: 50%;
+  bottom: 85%;
+  width: 0;
+  height: 0;
+}
+
+.gift-bow span {
+  position: absolute;
+  bottom: 0;
+  width: calc(var(--size) * 0.26);
+  height: calc(var(--size) * 0.2);
+  border: calc(var(--size) * 0.05) solid var(--c-gold);
+  border-radius: 50% 50% 10% 50%;
+  background: rgba(255, 243, 209, 0.15);
+}
+
+.gift-bow span:first-child { right: 0; transform: rotate(-20deg); transform-origin: right bottom; }
+.gift-bow span:last-child { left: 0; transform: rotate(20deg) scaleX(-1); transform-origin: left bottom; }
+
+.gift--mini { --size: 92px; }
+.gift--big { --size: 320px; }
+
+/* ===================== ① 기본 게이지 위젯 ===================== */
+.idle-widget {
+  position: absolute;
+  width: 600px;
+  animation: widgetIn 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+.idle-widget[data-pos='tl'] { left: 40px; top: 40px; }
+.idle-widget[data-pos='tc'] { left: 660px; top: 40px; }
+.idle-widget[data-pos='tr'] { right: 40px; top: 40px; }
+.idle-widget[data-pos='bl'] { left: 40px; bottom: 40px; }
+.idle-widget[data-pos='bc'] { left: 660px; bottom: 40px; }
+.idle-widget[data-pos='br'] { right: 40px; bottom: 40px; }
+
+@keyframes widgetIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+.idle-panel {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 24px 18px 18px;
+  background: var(--c-panel);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid var(--c-panel-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.mini-box {
+  flex: 0 0 auto;
+  animation: bob 3s ease-in-out infinite;
+  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.4));
+}
+
+/* 목표 80% 이상이면 뚜껑이 들썩입니다. */
+.mini-box.is-hot .gift-lid { animation: wiggle 1.2s ease-in-out infinite; }
+.mini-box.is-bump .gift { animation: bump 0.5s cubic-bezier(0.3, 1.6, 0.5, 1); }
+
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes wiggle {
+  0%, 60%, 100% { transform: rotate(0deg); }
+  70% { transform: translateY(-3px) rotate(-8deg); }
+  80% { transform: translateY(-2px) rotate(5deg); }
+  90% { transform: rotate(-3deg); }
+}
+@keyframes bump { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
+
+.idle-info { flex: 1; min-width: 0; }
+
+.idle-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--c-gold-light);
+  letter-spacing: 0.02em;
+}
+
+.idle-round {
+  margin-left: 6px;
+  padding: 2px 10px;
+  font-size: 14px;
+  border-radius: 999px;
+  background: rgba(232, 191, 106, 0.16);
+  color: var(--c-gold);
+}
+
+.idle-amount {
+  margin: 4px 0 8px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--c-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.idle-amount strong {
+  font-size: 44px;
+  font-weight: 900;
+  background: var(--c-gold-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 6px rgba(232, 191, 106, 0.25));
+}
+
+.idle-sep { margin: 0 8px; opacity: 0.5; }
+
+.gauge-track {
+  position: relative;
+  height: 22px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--c-recessed);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.gauge-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--c-gold-deep), var(--c-gold) 60%, var(--c-gold-light));
+  box-shadow: 0 0 16px rgba(232, 191, 106, 0.55);
+  transition: width 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.gauge-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.35) 45%, transparent 60%);
+  background-size: 250% 100%;
+  animation: shine 2.6s linear infinite;
+  mix-blend-mode: overlay;
+}
+
+@keyframes shine { from { background-position: 150% 0; } to { background-position: -100% 0; } }
+
+.idle-bottom {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 16px;
+  color: var(--c-text-muted);
+}
+
+.idle-bottom strong { color: var(--c-text); font-variant-numeric: tabular-nums; }
+.idle-hint { font-size: 14px; opacity: 0.8; }
+
+.value-pop { animation: valuePop 0.45s ease; display: inline-block; }
+@keyframes valuePop { 0% { transform: scale(1); } 40% { transform: scale(1.12); } 100% { transform: scale(1); } }
+
+/* ---- 후원 알림 토스트 ---- */
+.toast-area {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 14px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.idle-widget[data-pos^='t'] .toast-area { bottom: auto; top: calc(100% + 14px); }
+
+.toast {
+  --accent: var(--c-star);
+  --accent-soft: rgba(244, 196, 48, 0.55);
+  --accent-glow: rgba(244, 196, 48, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 24px 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--c-panel-strong);
+  border: 1px solid var(--accent-soft);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45), 0 0 24px var(--accent-glow);
+  animation: toastIn 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+}
+
+.toast.is-leaving { animation: toastOut 0.35s ease-in both; }
+.toast[data-type='CHALLENGE'] { --accent: var(--c-challenge); --accent-soft: rgba(255, 138, 61, 0.55); --accent-glow: rgba(255, 138, 61, 0.3); }
+.toast[data-type='BATTLE'] { --accent: var(--c-battle); --accent-soft: rgba(106, 168, 255, 0.55); --accent-glow: rgba(106, 168, 255, 0.3); }
+
+.toast-icon { font-size: 34px; }
+.toast-name { font-size: 18px; color: var(--c-text-muted); }
+.toast-name strong { color: var(--c-text); font-size: 22px; }
+.toast-line { font-size: 28px; font-weight: 900; color: var(--accent); }
+.toast-ticket {
+  margin-left: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 700;
+  background: rgba(232, 191, 106, 0.18);
+  color: var(--c-gold-light);
+}
+
+@keyframes toastIn { from { opacity: 0; transform: translateX(-30px) scale(0.9); } to { opacity: 1; transform: none; } }
+@keyframes toastOut { to { opacity: 0; transform: translateY(-10px) scale(0.95); } }
+
+/* ===================== 공통 장면(Scene) ===================== */
+.scene {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: sceneIn 0.5s ease both;
+}
+
+/* 게임 화면 위에서도 글씨가 잘 보이도록 가운데만 은은하게 어둡게 합니다. (가장자리는 투명) */
+.scene::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(ellipse 62% 70% at 50% 50%, rgba(0, 0, 0, 0.72) 0%, rgba(0, 0, 0, 0.45) 55%, rgba(0, 0, 0, 0) 100%);
+}
+
+.scene.is-leaving { animation: sceneOut 0.45s ease both; }
+@keyframes sceneIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sceneOut { to { opacity: 0; transform: scale(1.03); } }
+
+/* ===================== ② 오픈 연출 ===================== */
+.opening-headline {
+  font-size: 84px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  background: var(--c-gold-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 6px 18px rgba(232, 191, 106, 0.45));
+  animation: headlineIn 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+}
+
+@keyframes headlineIn { from { opacity: 0; transform: scale(0.6) translateY(20px); } to { opacity: 1; transform: none; } }
+
+.opening-box-wrap {
+  position: relative;
+  margin: 40px 0 30px;
+}
+
+.opening-box-wrap .gift { filter: drop-shadow(0 30px 40px rgba(0, 0, 0, 0.55)); }
+
+.opening-box-wrap.is-shaking .gift { animation: shake 0.42s ease-in-out infinite; }
+.opening-box-wrap.is-shaking-hard .gift { animation: shakeHard 0.18s linear infinite; }
+.opening-box-wrap.is-glowing .gift { filter: drop-shadow(0 0 30px rgba(255, 220, 140, 0.9)) drop-shadow(0 0 80px rgba(232, 191, 106, 0.7)); }
+
+@keyframes shake {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-4deg) translateX(-4px); }
+  75% { transform: rotate(4deg) translateX(4px); }
+}
+
+@keyframes shakeHard {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(-7px, 2px) rotate(-6deg); }
+  50% { transform: translate(6px, -3px) rotate(5deg); }
+  75% { transform: translate(-5px, -2px) rotate(-4deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+.opening-box-wrap.is-open .gift-lid { animation: lidFly 1s cubic-bezier(0.2, 0.7, 0.3, 1) forwards; }
+.opening-box-wrap.is-open .gift-body { animation: bodyPop 0.6s ease-out; }
+
+@keyframes lidFly {
+  to { transform: translate(-180px, -420px) rotate(-70deg); opacity: 0; }
+}
+
+@keyframes bodyPop { 0% { transform: scale(1); } 30% { transform: scale(1.1, 0.92); } 100% { transform: scale(1); } }
+
+.opening-countdown {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 220px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 0 30px rgba(232, 191, 106, 0.9), 0 8px 0 rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.opening-countdown .count { animation: countPop 0.95s ease-out both; }
+
+@keyframes countPop {
+  0% { opacity: 0; transform: scale(2.2); }
+  25% { opacity: 1; transform: scale(1); }
+  80% { opacity: 1; transform: scale(0.92); }
+  100% { opacity: 0; transform: scale(0.7); }
+}
+
+.opening-sub {
+  min-height: 48px;
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--c-text);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+}
+
+.opening-rays {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1500px;
+  height: 1500px;
+  margin: -750px 0 0 -750px;
+  z-index: -1;
+  opacity: 0;
+  border-radius: 50%;
+  background: repeating-conic-gradient(rgba(255, 230, 160, 0.22) 0deg 8deg, transparent 8deg 22deg);
+  mask-image: radial-gradient(circle, #000 0%, transparent 65%);
+  -webkit-mask-image: radial-gradient(circle, #000 0%, transparent 65%);
+  transition: opacity 0.8s ease;
+  animation: spin 18s linear infinite;
+}
+
+.opening-rays.is-on { opacity: 1; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.opening-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 55%, rgba(255, 250, 230, 1) 0%, rgba(255, 230, 160, 0.6) 30%, transparent 70%);
+  opacity: 0;
+}
+
+.opening-flash.is-on { animation: flash 0.9s ease-out; }
+@keyframes flash { 0% { opacity: 0; } 15% { opacity: 1; } 100% { opacity: 0; } }
+
+/* ===================== ③ 룰렛 ===================== */
+.roulette-header { text-align: center; margin-bottom: 18px; }
+
+.roulette-title {
+  font-size: 54px;
+  font-weight: 900;
+  background: var(--c-gold-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 4px 14px rgba(232, 191, 106, 0.35));
+}
+
+.roulette-chips { display: flex; justify-content: center; gap: 12px; margin-top: 10px; }
+
+.chip {
+  padding: 8px 18px;
+  font-size: 20px;
+  border-radius: 999px;
+  background: var(--c-panel);
+  border: 1px solid var(--c-panel-border);
+  color: var(--c-text-muted);
+}
+
+.chip strong { color: var(--c-gold-light); font-variant-numeric: tabular-nums; }
+
+.roulette-body {
+  display: flex;
+  align-items: center;
+  gap: 48px;
+}
+
+.roulette-side {
+  width: 360px;
+  height: 620px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  background: var(--c-panel);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--c-panel-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.side-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--c-gold);
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+}
+
+.entrant-list, .winner-mini-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.entrant-list li, .winner-mini-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  margin-bottom: 6px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 19px;
+}
+
+.entrant-list .swatch { width: 12px; height: 12px; border-radius: 3px; flex: 0 0 auto; }
+.entrant-list .name, .winner-mini-list .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.entrant-list .tickets { font-weight: 800; color: var(--c-gold-light); font-variant-numeric: tabular-nums; }
+.entrant-list .pct { width: 64px; text-align: right; font-size: 15px; color: var(--c-text-muted); font-variant-numeric: tabular-nums; }
+.entrant-list li.is-out { opacity: 0.35; text-decoration: line-through; }
+.entrant-list .more { justify-content: center; color: var(--c-text-muted); font-size: 16px; background: none; }
+
+.winner-mini-list .rank { font-weight: 800; color: var(--c-gold); width: 48px; }
+.winner-mini-list .prize { font-size: 14px; color: var(--c-text-muted); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.winner-mini-list li { animation: toastIn 0.4s ease both; }
+
+.prize-card {
+  padding: 16px;
+  margin-bottom: 18px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, rgba(232, 191, 106, 0.18), rgba(232, 191, 106, 0.05));
+  border: 1px solid rgba(232, 191, 106, 0.45);
+  text-align: center;
+}
+
+.prize-order { font-size: 22px; font-weight: 800; color: var(--c-gold); }
+.prize-name { margin-top: 4px; font-size: 30px; font-weight: 900; line-height: 1.25; word-break: keep-all; }
+.prize-slot { margin-top: 6px; font-size: 15px; color: var(--c-text-muted); }
+
+.wheel-wrap {
+  position: relative;
+  width: 620px;
+  height: 620px;
+  filter: drop-shadow(0 24px 40px rgba(0, 0, 0, 0.55));
+}
+
+.wheel {
+  width: 620px;
+  height: 620px;
+  border-radius: 50%;
+}
+
+.wheel-pointer {
+  position: absolute;
+  left: 50%;
+  top: -18px;
+  z-index: 2;
+  width: 0;
+  height: 0;
+  margin-left: -26px;
+  border-left: 26px solid transparent;
+  border-right: 26px solid transparent;
+  border-top: 56px solid var(--c-gold-light);
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5));
+}
+
+.wheel-hub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 110px;
+  height: 110px;
+  margin: -55px 0 0 -55px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 52px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #2a2a30, #07070a);
+  border: 5px solid var(--c-gold);
+  box-shadow: 0 0 24px rgba(232, 191, 106, 0.6);
+}
+
+.winner-banner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.2) 60%, transparent 80%);
+}
+
+.winner-banner-inner {
+  padding: 40px 80px;
+  text-align: center;
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(30, 22, 8, 0.92), rgba(8, 8, 10, 0.92));
+  border: 2px solid var(--c-gold);
+  box-shadow: 0 0 60px rgba(232, 191, 106, 0.55), 0 30px 60px rgba(0, 0, 0, 0.6);
+  animation: bannerIn 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.5) both;
+}
+
+@keyframes bannerIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: none; } }
+
+.winner-name {
+  font-size: 76px;
+  font-weight: 900;
+  background: var(--c-gold-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.winner-prize { margin-top: 10px; font-size: 44px; font-weight: 800; }
+.winner-odds { margin-top: 12px; font-size: 20px; color: var(--c-text-muted); }
+
+/* ===================== ④ 최종 결과 ===================== */
+.result-panel {
+  width: 980px;
+  max-height: 960px;
+  padding: 40px 56px;
+  text-align: center;
+  background: var(--c-panel-strong);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--c-panel-border);
+  border-radius: 28px;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.55), 0 0 50px rgba(232, 191, 106, 0.2);
+  overflow: hidden;
+}
+
+.result-title {
+  font-size: 60px;
+  font-weight: 900;
+  background: var(--c-gold-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.result-round { margin: 6px 0 26px; font-size: 22px; color: var(--c-text-muted); }
+
+.result-list { list-style: none; margin: 0; padding: 0; text-align: left; }
+
+.result-list li {
+  display: grid;
+  grid-template-columns: 110px 1fr 1.2fr;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  margin-bottom: 10px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 30px;
+  animation: resultIn 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+.result-list li.rank-1 { border-color: rgba(232, 191, 106, 0.6); background: rgba(232, 191, 106, 0.12); }
+.result-list .r-rank { font-weight: 900; color: var(--c-gold); }
+.result-list .r-name { font-weight: 900; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.result-list .r-prize { font-size: 26px; color: var(--c-text-muted); text-align: right; word-break: keep-all; }
+.result-list li.is-empty .r-name { color: var(--c-text-muted); font-weight: 500; }
+.result-list.is-compact li { padding: 8px 20px; font-size: 22px; grid-template-columns: 90px 1fr 1.2fr; }
+.result-list.is-compact .r-prize { font-size: 19px; }
+
+@keyframes resultIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+
+.result-empty { font-size: 28px; color: var(--c-text-muted); }
+
+/* ===================== 꽃가루 ===================== */
+.confetti {
+  position: absolute;
+  inset: 0;
+  width: 1920px;
+  height: 1080px;
+  pointer-events: none;
+  z-index: 50;
+}
