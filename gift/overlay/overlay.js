@@ -11,8 +11,11 @@ const widgetPos = WIDGET_POSITIONS.includes(params.get('pos')) ? params.get('pos
 
 const TYPE_LABELS = { STAR: '별풍선', CHALLENGE: '도전미션', BATTLE: '대결미션' };
 const TYPE_ICONS = { STAR: '⭐', CHALLENGE: '🔥', BATTLE: '⚔️' };
-const WHEEL_COLORS = ['#c2263f', '#e8bf6a', '#7d1027', '#f3d48c', '#a01c34', '#c9963f', '#5e0c1e', '#ffe7ad'];
-const DARK_TEXT_COLORS = new Set(['#e8bf6a', '#f3d48c', '#c9963f', '#ffe7ad']);
+// 선물상자 일러스트와 같은 노란색·크림색 계열 (글씨는 모두 갈색이라 어느 칸에서도 잘 보임)
+const WHEEL_COLORS = ['#ffd84d', '#fff3c4', '#ffb627', '#ffe9a3', '#f5c33b', '#fffaf0', '#ffc94a', '#ffeebd'];
+const WHEEL_TEXT_COLOR = '#5a3410';
+const WHEEL_LINE_COLOR = '#6b3f12';
+const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
 const $ = (id) => document.getElementById(id);
 const el = {
@@ -175,6 +178,7 @@ function renderIdle(state, { bump = false } = {}) {
   el.idleRemaining.textContent = formatNumber(event.remainingAmount);
   el.idleHint.textContent = `${formatNumber(event.ticketUnit)}개당 응모권 1장`;
   el.gaugeFill.style.width = `${event.percent}%`;
+  el.gaugeFill.classList.toggle('is-empty', event.percent < 3);
   el.miniBox.classList.toggle('is-hot', event.percent >= 80);
   tweenAmount(event.displayAmount);
   if (bump) {
@@ -335,17 +339,21 @@ function drawWheel() {
   const r = c - 16;
   ctx.clearRect(0, 0, size, size);
 
-  // 바깥 금테
+  // 바깥 테두리 (갈색 외곽선 + 금색 띠)
   ctx.beginPath();
-  ctx.arc(c, c, c - 4, 0, Math.PI * 2);
-  ctx.fillStyle = '#a9772c';
+  ctx.arc(c, c, c - 2, 0, Math.PI * 2);
+  ctx.fillStyle = WHEEL_LINE_COLOR;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(c, c, c - 9, 0, Math.PI * 2);
+  ctx.fillStyle = '#f5b014';
   ctx.fill();
 
   const total = poolTotal(wheelPool);
   if (total === 0) {
     ctx.beginPath();
     ctx.arc(c, c, r, 0, Math.PI * 2);
-    ctx.fillStyle = '#1a1a1f';
+    ctx.fillStyle = '#fff3c4';
     ctx.fill();
     return;
   }
@@ -364,8 +372,8 @@ function drawWheel() {
     ctx.fillStyle = color;
     ctx.fill();
     if (wheelPool.length > 1) {
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
-      ctx.lineWidth = 3;
+      ctx.strokeStyle = WHEEL_LINE_COLOR;
+      ctx.lineWidth = 4;
       ctx.stroke();
     }
 
@@ -381,7 +389,7 @@ function drawWheel() {
       ctx.rotate(mid);
       ctx.textBaseline = 'middle';
       ctx.font = `800 ${fontSize}px Pretendard, 'Malgun Gothic', sans-serif`;
-      ctx.fillStyle = DARK_TEXT_COLORS.has(color) ? '#2a1606' : '#fff6e0';
+      ctx.fillStyle = WHEEL_TEXT_COLOR;
       if (flipped) {
         ctx.translate(r - 34, 0);
         ctx.rotate(Math.PI);
@@ -397,10 +405,10 @@ function drawWheel() {
   });
   ctx.restore();
 
-  // 안쪽 그림자 링
+  // 안쪽 갈색 외곽선
   ctx.beginPath();
   ctx.arc(c, c, r, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(255, 243, 209, 0.6)';
+  ctx.strokeStyle = WHEEL_LINE_COLOR;
   ctx.lineWidth = 6;
   ctx.stroke();
 }
@@ -557,7 +565,7 @@ function renderResult(state) {
     .map((prize, index) => {
       const winner = winnersBySlot.get(index + 1);
       return `<li class="${prize.order === 1 ? 'rank-1' : ''} ${winner ? '' : 'is-empty'}" style="animation-delay:${index * 0.12}s">
-        <span class="r-rank">${rankLabel(prize.order)}</span>
+        <span class="r-rank">${MEDALS[prize.order] || '🎁'} ${rankLabel(prize.order)}</span>
         <span class="r-name">${winner ? escapeHtml(winner.nickname) : '당첨자 없음'}</span>
         <span class="r-prize">${escapeHtml(prize.name)}</span>
       </li>`;
@@ -584,7 +592,8 @@ const confetti = (() => {
   const ctx = canvas.getContext('2d');
   canvas.width = 1920;
   canvas.height = 1080;
-  const colors = ['#e8bf6a', '#fff3d1', '#c2263f', '#ea4a63', '#ffffff', '#f4c430', '#6aa8ff'];
+  // 노란색·골드·크림색 + 흰색. 일부는 하트 모양으로 떨어집니다.
+  const colors = ['#ffd84d', '#ffc928', '#fff3c4', '#ffffff', '#ff9f1c', '#ffe58a', '#f5b014'];
   let particles = [];
   let running = false;
 
@@ -596,6 +605,7 @@ const confetti = (() => {
       rot: Math.random() * Math.PI,
       vr: (Math.random() - 0.5) * 0.3,
       color: colors[Math.floor(Math.random() * colors.length)],
+      heart: Math.random() < 0.3,
       life: 1,
     });
     if (particles.length > 900) particles.splice(0, particles.length - 900);
@@ -637,7 +647,8 @@ const confetti = (() => {
       ctx.translate(p.x, p.y);
       ctx.rotate(p.rot);
       ctx.fillStyle = p.color;
-      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos(p.rot * 2)));
+      if (p.heart) drawHeart(ctx, p.w * 1.3);
+      else ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos(p.rot * 2)));
       ctx.restore();
     }
     if (particles.length > 0) requestAnimationFrame(tick);
@@ -645,6 +656,20 @@ const confetti = (() => {
       running = false;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
+  }
+
+  // 갈색 테두리가 있는 작은 하트 (일러스트의 하트 장식과 같은 느낌)
+  function drawHeart(c, size) {
+    const s = size / 2;
+    c.beginPath();
+    c.moveTo(0, s * 0.6);
+    c.bezierCurveTo(-s * 1.2, -s * 0.2, -s * 0.6, -s * 1.1, 0, -s * 0.45);
+    c.bezierCurveTo(s * 0.6, -s * 1.1, s * 1.2, -s * 0.2, 0, s * 0.6);
+    c.closePath();
+    c.fill();
+    c.lineWidth = 1.6;
+    c.strokeStyle = 'rgba(107, 63, 18, 0.75)';
+    c.stroke();
   }
 
   return { burst, rain };

@@ -472,7 +472,7 @@ $('testForm').addEventListener('submit', (e) => {
 
 $('randomTestBtn').addEventListener('click', (e) => run(e.currentTarget, async () => {
   const names = ['철수', '영희', '민수', '지영', '현우', '수빈', '도윤', '하은'];
-  const types = ['STAR', 'CHALLENGE', 'BATTLE'];
+  const types = ['STAR']; // 현재 운영은 일반 별풍선만 사용
   const amounts = [10, 30, 50, 77, 100, 150, 200, 300];
   let last = null;
   for (let i = 0; i < 5; i += 1) {

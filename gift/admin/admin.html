@@ -53,7 +53,7 @@
           </label>
           <button class="btn" type="submit">목표 저장</button>
         </form>
-        <p class="hint">응모권: 해당 회차 누적 후원 100개당 1장 (별풍선 + 도전미션 + 대결미션 합산)</p>
+        <p class="hint">응모권: 해당 회차 누적 별풍선 100개당 1장 (현재 운영은 일반 별풍선만 집계)</p>
         <p class="hint">중복 당첨 불가: 같은 회차에서 한 번 당첨된 사람은 다음 추첨 대상에서 자동으로 제외됩니다. (고정 규칙)</p>
       </section>
 
@@ -73,10 +73,9 @@
           <label class="field"><span>테스트 닉네임</span><input id="testNickname" maxlength="50" value="테스트1" required /></label>
           <div class="field">
             <span>후원 유형</span>
+            <!-- 현재 운영은 일반 별풍선(STAR)만 사용합니다. (DB/서버는 CHALLENGE·BATTLE 타입을 계속 지원) -->
             <div class="segmented" id="testType">
               <label><input type="radio" name="testType" value="STAR" checked /><span>⭐ 별풍선</span></label>
-              <label><input type="radio" name="testType" value="CHALLENGE" /><span>🔥 도전미션</span></label>
-              <label><input type="radio" name="testType" value="BATTLE" /><span>⚔️ 대결미션</span></label>
             </div>
           </div>
           <label class="field"><span>후원 개수</span><input type="number" id="testAmount" min="1" step="1" value="100" required /></label>
@@ -105,8 +104,6 @@
               <span>후원 유형</span>
               <select id="manualType">
                 <option value="STAR">별풍선</option>
-                <option value="CHALLENGE">도전미션</option>
-                <option value="BATTLE">대결미션</option>
               </select>
             </label>
             <label class="field"><span>후원 개수</span><input type="number" id="manualAmount" min="1" step="1" required /></label>

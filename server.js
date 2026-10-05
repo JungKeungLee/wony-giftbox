@@ -36,6 +36,10 @@ const BCRAPING_HEADERS = {
   Accept: 'application/json',
 };
 
+// 이 서비스는 이제 선물상자 시스템이 메인이므로, 루트 주소(/)는 관리자 화면으로 보냅니다.
+// (기존 도전미션 TOP5 루트 안내 페이지 public/index.html은 제거했습니다)
+app.get('/', (req, res) => res.redirect(302, '/admin'));
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // 선물상자 이벤트 (/admin 관리자 화면, /overlay OBS 오버레이, /api/gift/*). 자세한 내용은 GIFT_BOX_README.md
