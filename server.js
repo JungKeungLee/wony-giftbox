@@ -40,6 +40,9 @@ const BCRAPING_HEADERS = {
 // (기존 도전미션 TOP5 루트 안내 페이지 public/index.html은 제거했습니다)
 app.get('/', (req, res) => res.redirect(302, '/admin'));
 
+// 헬스 체크 (Render Health Check Path 등). DB 상태와 무관하게 서버 프로세스가 살아 있으면 200을 돌려줍니다.
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // 선물상자 이벤트 (/admin 관리자 화면, /overlay OBS 오버레이, /api/gift/*). 자세한 내용은 GIFT_BOX_README.md
@@ -293,8 +296,13 @@ app.get('/api/mission', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`서버가 실행되었습니다: http://localhost:${PORT}`);
-  console.log('사용 예: http://localhost:' + PORT + '/broadcast.html?bj=아이디&goal=목표치');
-  console.log(`선물상자 관리자: http://localhost:${PORT}/admin  /  OBS 오버레이: http://localhost:${PORT}/overlay`);
-});
+// `node server.js`로 직접 실행할 때만 서버를 시작합니다. (테스트에서는 app만 불러와 사용)
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`서버가 실행되었습니다: http://localhost:${PORT}`);
+    console.log('사용 예: http://localhost:' + PORT + '/broadcast.html?bj=아이디&goal=목표치');
+    console.log(`선물상자 관리자: http://localhost:${PORT}/admin  /  OBS 오버레이: http://localhost:${PORT}/overlay`);
+  });
+}
+
+module.exports = app;
