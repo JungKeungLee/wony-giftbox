@@ -6,7 +6,7 @@
 // 특정 스트리머 하나로 고정되어 있지 않고, 요청마다 ?bj=아이디 또는 ?nick=닉네임을 받아서
 // 그 스트리머만 조회합니다. 그래서 broadcast.html?bj=아무개 형태로 누구든 각자 쓸 수 있습니다.
 //
-// SOOP 공식 OAuth/Chat SDK는 전혀 사용하지 않습니다.
+// (도전미션 TOP5는 SOOP 공식 OAuth/Chat SDK를 사용하지 않습니다. 선물상자 별풍선 연동만 soop/ 모듈에서 공식 SDK를 씁니다.)
 // bcraping.kr API는 브라우저가 아니라 이 서버(Node.js)에서만 호출합니다.
 
 require('dotenv').config();
@@ -46,7 +46,16 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // 선물상자 이벤트 (/admin 관리자 화면, /overlay OBS 오버레이, /api/gift/*). 자세한 내용은 GIFT_BOX_README.md
-mountGiftBox(app);
+const giftBox = mountGiftBox(app);
+
+// SOOP 공식 OAuth + Chat SDK 별풍선 연동 (/soop-connector, /api/soop/*). 선물상자의 DonationService로 후원을 전달합니다.
+// 연동 모듈에 문제가 있어도 선물상자·TOP5는 계속 동작하도록 격리합니다.
+try {
+  const { mountSoopConnector } = require('./soop');
+  mountSoopConnector(app, { getDonationService: () => giftBox.runtime.donationService });
+} catch (error) {
+  console.error('[soop] SOOP 연동 모듈을 시작하지 못했습니다 (선물상자는 정상 동작):', error);
+}
 
 // 스트리머(bj 또는 nick)별로 마지막 조회 결과를 저장해둡니다. (요구사항 5: URL마다 독립적으로 조회)
 // key -> { data, fetchedAt }

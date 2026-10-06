@@ -572,6 +572,52 @@ function connectStream() {
   };
 }
 
+// ---- SOOP 공식 연동 상태 (선물상자 기능과 독립: 실패해도 다른 화면 동작에는 영향 없음) ----
+const SOOP_SDK_LABELS = {
+  IDLE: '대기',
+  CONNECTING: '연결 중',
+  CONNECTED: '연결됨',
+  DISCONNECTED: '끊김',
+  ERROR: '오류',
+  NO_PAGE: '커넥터 페이지 닫힘',
+};
+
+function setSoopValue(id, text, tone) {
+  const node = $(id);
+  node.textContent = text;
+  node.dataset.tone = tone || '';
+}
+
+async function loadSoopStatus() {
+  try {
+    const res = await fetch('/api/soop/admin/status', { credentials: 'same-origin' });
+    if (!res.ok) throw new Error(res.status === 404 ? '연동 모듈 없음' : `HTTP ${res.status}`);
+    const soop = await res.json();
+    if (!soop.configured) {
+      setSoopValue('soopOauth', '설정 안 됨', 'muted');
+      setSoopValue('soopSdk', '-', 'muted');
+      setSoopValue('soopLast', '-', 'muted');
+      $('soopHint').textContent = 'Render 환경변수 SOOP_CLIENT_ID / SOOP_CLIENT_SECRET을 설정하면 사용할 수 있습니다.';
+      return;
+    }
+    const oauthOn = soop.oauth === 'CONNECTED';
+    setSoopValue('soopOauth', oauthOn ? '연결됨' : '연결 안 됨', oauthOn ? 'ok' : 'bad');
+    const sdkTone = soop.sdkState === 'CONNECTED' ? 'ok' : soop.sdkState === 'CONNECTING' ? 'warn' : oauthOn ? 'bad' : 'muted';
+    const who = soop.bjNickname || soop.bjId;
+    setSoopValue('soopSdk', (SOOP_SDK_LABELS[soop.sdkState] || soop.sdkState) + (who && soop.sdkState === 'CONNECTED' ? ` · ${who}` : ''), sdkTone);
+    const last = soop.lastBalloon;
+    setSoopValue('soopLast', last ? `${last.nickname} / ${formatNumber(last.count)}개 / ${formatTime(last.at)}` : '-', last ? '' : 'muted');
+    $('soopHint').textContent = soop.lastError ? `최근 오류 (${formatTime(soop.lastError.at)}): ${soop.lastError.message}` : '';
+  } catch (error) {
+    setSoopValue('soopOauth', '확인 불가', 'muted');
+    setSoopValue('soopSdk', '-', 'muted');
+    setSoopValue('soopLast', '-', 'muted');
+    $('soopHint').textContent = `SOOP 연동 상태를 불러오지 못했습니다: ${error.message}`;
+  }
+}
+
 loadState();
 loadRounds();
 connectStream();
+loadSoopStatus();
+setInterval(loadSoopStatus, 5000);

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="referrer" content="no-referrer" />
+  <title>SOOP 별풍선 연동</title>
+  <link rel="stylesheet" href="/admin-assets/admin.css" />
+  <link rel="stylesheet" href="/soop-connector-assets/connector.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-title">⭐ SOOP 공식 별풍선 연동</div>
+    <div class="topbar-right">
+      <a class="btn btn-ghost" href="/admin">관리자 화면</a>
+    </div>
+  </header>
+
+  <main class="connector">
+    <p class="keep-open" role="note">
+      SOOP 공식 Chat SDK는 브라우저에서 실행되므로<br />
+      방송 중에는 이 페이지를 닫지 마세요.
+    </p>
+
+    <section class="card">
+      <h2>계정 상태</h2>
+      <div class="state-row">
+        <span class="label">SOOP 계정</span>
+        <span class="pill" id="oauthPill" data-state="OFF">확인 중…</span>
+      </div>
+
+      <div id="disconnectedView" hidden>
+        <p class="hint" id="notConfigured" hidden>서버에 SOOP_CLIENT_ID / SOOP_CLIENT_SECRET이 설정되어 있지 않습니다. 관리자에게 문의하세요.</p>
+        <a class="btn btn-primary btn-big" id="loginBtn" href="/soop-connector/login">SOOP 계정 연결</a>
+        <p class="hint">SOOP 공식 로그인 화면으로 이동합니다. 이 사이트는 SOOP 아이디/비밀번호를 받지 않습니다.</p>
+      </div>
+
+      <div id="connectedView" hidden>
+        <p class="done">SOOP 계정 연결 완료</p>
+        <div class="state-row">
+          <span class="label">방송인</span>
+          <strong id="bjName">-</strong>
+        </div>
+        <div class="state-row">
+          <span class="label">Chat SDK 상태</span>
+          <span class="pill" id="sdkPill" data-state="IDLE">IDLE</span>
+        </div>
+        <div class="row actions">
+          <button class="btn btn-primary btn-big" id="connectBtn" type="button">방송 연결</button>
+          <button class="btn btn-big" id="disconnectBtn" type="button">연결 해제</button>
+        </div>
+        <p class="hint">방송 연결은 SOOP 정책상 <strong>로그인한 본인 방송</strong>에만 가능합니다. 방송을 켠 뒤 눌러주세요.</p>
+        <button class="btn btn-ghost btn-sm" id="logoutBtn" type="button">SOOP 계정 연결 끊기</button>
+      </div>
+
+      <p class="error-line" id="errorLine" role="alert" hidden></p>
+    </section>
+
+    <section class="card">
+      <h2>최근 별풍선 <span class="sub" id="pendingLabel"></span></h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>닉네임</th><th>개수</th><th>수신 시각</th><th>처리</th></tr></thead>
+          <tbody id="recentTable"><tr><td colspan="4" class="empty">아직 받은 별풍선이 없습니다.</td></tr></tbody>
+        </table>
+      </div>
+      <p class="hint">일반 별풍선만 집계합니다. 도전미션·대결미션·VOD 별풍선·중계방 별풍선은 집계하지 않습니다.</p>
+    </section>
+
+    <section class="card">
+      <details>
+        <summary>설정 안내</summary>
+        <p class="hint">SOOP Developers 애플리케이션의 Redirect URL에 아래 주소를 등록해야 합니다.</p>
+        <code class="redirect" id="redirectUri">-</code>
+      </details>
+    </section>
+  </main>
+
+  <script src="https://static.sooplive.com/asset/app/chat-sdk/sooplive-chat-sdk.js"></script>
+  <script src="/soop-connector-assets/connectorCore.js"></script>
+  <script src="/soop-connector-assets/connector.js"></script>
+</body>
+</html>

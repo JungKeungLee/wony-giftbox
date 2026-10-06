@@ -335,7 +335,7 @@ SSE `type` 목록: `STATE_SYNC`, `DONATION_RECEIVED`, `DONATION_CANCELED`, `PROG
 
 ## 12. 미구현 사항 / 한계
 
-- **외부 방송 플랫폼 실시간 연동**: API가 확정되지 않아 `DonationProvider` 인터페이스만 준비했습니다. 지금은 관리자 테스트 후원과 수동 등록으로 운영합니다.
+- **SOOP 공식 별풍선 연동**: 일반 별풍선(STAR)만 연동합니다(14장). 도전미션·대결미션은 연동하지 않습니다.
 - 기존 bcraping.kr 조회는 미션별 **합계**만 주므로 선물상자 후원 소스로 연결하지 않았습니다.
 - 관리자 계정은 `OPERATOR_TOKEN` 1개를 공유합니다.
 - 효과음과 BGM은 없습니다(OBS 미디어 소스로 추가).
@@ -355,3 +355,25 @@ SSE `type` 목록: `STATE_SYNC`, `DONATION_RECEIVED`, `DONATION_CANCELED`, `PROG
 6. 호출 제한과 이용 약관상 허용 범위
 
 `gift/providers/DonationProvider.js`를 상속해 `toDonation(raw)`만 구현하면, 나머지 처리(검증 → 중복 방지 → 게이지 → 응모권 → 실시간 전송)는 지금 로직을 그대로 탑니다. 별도 브리지 프로그램에서 보낼 경우 `POST /api/gift/admin/donations`에 `X-Operator-Token` 헤더와 `{ donorId, nickname, type, amount, timestamp, eventId, source: "SOOP" }`를 담아 보내면 됩니다.
+
+---
+
+## 14. SOOP 공식 별풍선 연동 (`/soop-connector`)
+
+SOOP 공식 OAuth + 공식 Chat SDK로 **일반 별풍선(STAR)만** 받아 기존 `DonationService`로 넘깁니다. 비공식 WebSocket이나 `soop-chat` 패키지는 쓰지 않습니다.
+
+```
+방송인 브라우저 /soop-connector (관리자 로그인 필요)
+  → SOOP OAuth (openapi.sooplive.com/auth/code, 서버가 auth/token으로 토큰 발급)
+  → SOOP 공식 Chat SDK (브라우저, Access Token으로 본인 방송 채팅 서버 접속)
+  → BALLOON_GIFTED
+  → POST /api/soop/balloon (HttpOnly 커넥터 세션 쿠키)
+  → DonationService → GiftEventService → PostgreSQL → /overlay
+```
+
+- **환경변수**: `SOOP_CLIENT_ID`, `SOOP_CLIENT_SECRET`(필수), `SOOP_BJ_ID`(권장). Secret은 서버에서만 씁니다.
+- **Redirect URL** (SOOP Developers 애플리케이션 설정): `https://<서비스 주소>/soop-connector/callback`
+- **집계 규칙**: `fromVod`(VOD 별풍선)와 `relaysBroad`(중계방)은 제외합니다. 도전미션·대결미션은 다른 이벤트로 오므로 집계하지 않습니다. SDK에 이벤트 고유 ID가 없어 닉네임·개수·시각으로 중복을 거르지 않으므로, 같은 사람이 같은 개수를 두 번 보내면 두 건 모두 집계됩니다. 재전송 중복만 막으려고 커넥터가 수신 1건마다 UUID를 붙입니다.
+- **보안**: 연결은 관리자 로그인 상태에서만 시작할 수 있고, OAuth `state`(1회용, 10분)로 CSRF를 막습니다. 후원 API는 OAuth 완료 시 발급한 HttpOnly·SameSite=Strict 세션 쿠키가 있어야 호출됩니다. 새로 연결하거나 연결을 끊으면 이전 세션은 무효가 됩니다.
+- **한계**: Chat SDK가 브라우저에서 실행되므로 **방송 중에는 커넥터 페이지를 열어둬야 합니다.** 세션은 서버 메모리에 있어서, 서버가 재시작(Render 재배포 등)되면 커넥터에서 SOOP 계정을 다시 연결해야 합니다.
+- **장애 격리**: SOOP 설정이 없거나 연동이 실패해도 `/admin`, `/overlay`, 테스트·수동 후원, 룰렛, 회차 기록은 그대로 동작합니다. 관리자 화면의 "SOOP 공식 연동" 카드에서 상태를 볼 수 있습니다.

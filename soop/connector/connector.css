@@ -1,0 +1,73 @@
+/* soop/connector/connector.css
+   /soop-connector 전용 스타일입니다. 색/버튼/카드는 관리자 화면(admin.css)을 그대로 씁니다. */
+
+.connector {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px 16px 40px;
+}
+
+.keep-open {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(255, 157, 77, 0.5);
+  background: rgba(255, 157, 77, 0.1);
+  color: var(--c-orange);
+  font-weight: 700;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.state-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.done { margin: 4px 0 6px; font-size: 18px; font-weight: 800; color: var(--c-green); }
+
+.pill {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  background: var(--c-card-2);
+  border: 1px solid var(--c-border);
+  color: var(--c-muted);
+}
+.pill[data-state='ON'],
+.pill[data-state='CONNECTED'] { color: var(--c-green); border-color: rgba(79, 209, 139, 0.5); }
+.pill[data-state='CONNECTING'] { color: var(--c-gold); border-color: var(--c-border-gold); }
+.pill[data-state='ERROR'],
+.pill[data-state='DISCONNECTED'] { color: var(--c-red); border-color: rgba(255, 107, 107, 0.45); }
+
+.actions { margin-top: 14px; }
+.actions .btn { flex: 1; }
+#disconnectedView .btn-big { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; margin-top: 12px; }
+#logoutBtn { margin-top: 12px; }
+
+.error-line { margin: 12px 0 0; font-size: 14px; color: var(--c-red); line-height: 1.5; word-break: break-all; }
+
+.empty { text-align: center; color: var(--c-muted); }
+.result-COUNTED { color: var(--c-green); }
+.result-IGNORED { color: var(--c-gold); }
+.result-EXCLUDED,
+.result-REJECTED { color: var(--c-muted); }
+
+.redirect {
+  display: block;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--c-card-2);
+  word-break: break-all;
+  font-size: 14px;
+}
