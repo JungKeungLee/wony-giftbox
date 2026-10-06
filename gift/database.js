@@ -31,6 +31,10 @@ const SCHEMA_SQL = `
     updated_at        TIMESTAMPTZ NOT NULL
   );
 
+  -- 응모권 지급 기준(ticket_unit)이 없던 예전 테이블을 위한 보정입니다. 컬럼이 이미 있으면 아무것도 하지 않고,
+  -- 없으면 추가하면서 기존 회차는 모두 기본값 100으로 채워집니다.
+  ALTER TABLE gift_event ADD COLUMN IF NOT EXISTS ticket_unit INTEGER NOT NULL DEFAULT 100 CHECK (ticket_unit > 0);
+
   -- 진행 중(FINISHED가 아닌) 회차는 항상 최대 1개만 존재하도록 DB 차원에서 막습니다.
   CREATE UNIQUE INDEX IF NOT EXISTS ux_gift_event_single_open
     ON gift_event ((status <> 'FINISHED')) WHERE status <> 'FINISHED';

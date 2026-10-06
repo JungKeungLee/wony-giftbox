@@ -17,6 +17,9 @@
 const crypto = require('crypto');
 const {
   DEFAULT_TICKET_UNIT,
+  MAX_TICKET_UNIT,
+  normalizeTicketUnit,
+  ticketCount,
   DONATION_TYPE_LABELS,
   aggregateDonors,
   weightedPick,
@@ -61,6 +64,19 @@ class GiftError extends Error {
 }
 
 // PostgreSQL UNIQUE 제약 위반 (SQLSTATE 23505)
+// 관리자 입력(응모권 지급 기준)을 검증합니다. 1 이상의 정수만 허용 (0, 음수, 소수, 문자 거절)
+function parseTicketUnit(value) {
+  const text = typeof value === 'string' ? value.trim() : value;
+  const unit = typeof text === 'number' ? text : /^\d+$/.test(String(text ?? '')) ? Number(text) : NaN;
+  if (!Number.isInteger(unit) || unit < 1) {
+    throw new GiftError('INVALID_TICKET_UNIT', '응모권 지급 기준은 1 이상의 정수여야 합니다.');
+  }
+  if (unit > MAX_TICKET_UNIT) {
+    throw new GiftError('INVALID_TICKET_UNIT', `응모권 지급 기준은 ${MAX_TICKET_UNIT.toLocaleString('ko-KR')} 이하로 입력해주세요.`);
+  }
+  return unit;
+}
+
 function isUniqueViolation(error) {
   return Boolean(error) && error.code === '23505';
 }
@@ -454,24 +470,40 @@ class GiftEventService {
   // 설정
   // ---------------------------------------------------------------------------
 
-  // 목표 개수 변경
-  async updateSettings({ targetAmount }) {
-    if (targetAmount === undefined) return this.getAdminState();
-    const target = Number(targetAmount);
-    if (!Number.isInteger(target) || target <= 0) {
-      throw new GiftError('INVALID_TARGET', '목표 개수는 1 이상의 정수여야 합니다.');
+  // 목표 개수 / 응모권 지급 기준(ticketUnit) 변경. 둘 중 보낸 값만 바꿉니다.
+  // ticketUnit은 회차 설정값(gift_event.ticket_unit)이라 서버를 재시작해도 유지되고, 다음 회차에도 그대로 복사됩니다.
+  // 응모권은 저장하지 않고 매번 "누적 후원 ÷ ticketUnit"으로 계산하므로, 수집 중에 바꾸면 기존 참여자 응모권도 새 기준으로 다시 계산됩니다.
+  // 추첨 가중치가 흔들리지 않도록 룰렛/결과 단계에서는 바꿀 수 없습니다. (READY / ACTIVE에서만)
+  async updateSettings({ targetAmount, ticketUnit } = {}) {
+    if (targetAmount === undefined && ticketUnit === undefined) return this.getAdminState();
+    const target = targetAmount === undefined ? undefined : Number(targetAmount);
+    if (target !== undefined) {
+      if (!Number.isInteger(target) || target <= 0) {
+        throw new GiftError('INVALID_TARGET', '목표 개수는 1 이상의 정수여야 합니다.');
+      }
+      if (target > MAX_TARGET_AMOUNT) {
+        throw new GiftError('INVALID_TARGET', `목표 개수는 ${MAX_TARGET_AMOUNT.toLocaleString('ko-KR')} 이하로 입력해주세요.`);
+      }
     }
-    if (target > MAX_TARGET_AMOUNT) {
-      throw new GiftError('INVALID_TARGET', `목표 개수는 ${MAX_TARGET_AMOUNT.toLocaleString('ko-KR')} 이하로 입력해주세요.`);
-    }
+    const unit = ticketUnit === undefined ? undefined : parseTicketUnit(ticketUnit);
 
     const result = await this.db.transaction(async (tx) => {
       const event = await this.lockOpenEvent(tx);
-      this.assertStatus(event, [STATUS.READY, STATUS.ACTIVE], '목표 개수를 변경');
-      await tx.query('UPDATE gift_event SET target_amount = $1, updated_at = $2 WHERE id = $3', [target, this.nowIso(), event.id]);
-      await this.log(tx, event.id, 'SETTINGS_UPDATED', { targetAmount: target });
+      this.assertStatus(event, [STATUS.READY, STATUS.ACTIVE], target !== undefined ? '목표 개수를 변경' : '응모권 지급 기준을 변경');
+      const now = this.nowIso();
+      const changes = {};
+      if (target !== undefined) {
+        await tx.query('UPDATE gift_event SET target_amount = $1, updated_at = $2 WHERE id = $3', [target, now, event.id]);
+        changes.targetAmount = target;
+      }
+      if (unit !== undefined) {
+        await tx.query('UPDATE gift_event SET ticket_unit = $1, updated_at = $2 WHERE id = $3', [unit, now, event.id]);
+        changes.ticketUnit = unit;
+        changes.previousTicketUnit = event.ticketUnit;
+      }
+      await this.log(tx, event.id, 'SETTINGS_UPDATED', changes);
       // 수집 중에 목표를 현재값 이하로 낮추면 즉시 목표 달성 처리합니다.
-      const goalReached = event.status === STATUS.ACTIVE && (await this.tryReachGoal(tx, event.id));
+      const goalReached = target !== undefined && event.status === STATUS.ACTIVE && (await this.tryReachGoal(tx, event.id));
       return { event, goalReached };
     });
 
@@ -658,7 +690,7 @@ class GiftEventService {
       [event.id, donorKey]
     );
     const total = rows[0].total;
-    return { total, tickets: Math.floor(total / event.ticketUnit) };
+    return { total, tickets: ticketCount(total, event.ticketUnit) };
   }
 
   // current_amount가 목표 이상이면 ACTIVE → BOX_OPENING 으로 바꿉니다. 바뀌었으면 true
@@ -940,7 +972,7 @@ function mapEvent(row) {
     roundNo: row.round_no,
     targetAmount: row.target_amount,
     currentAmount: row.current_amount,
-    ticketUnit: row.ticket_unit,
+    ticketUnit: normalizeTicketUnit(row.ticket_unit),
     winnerCount: row.winner_count,
     status: row.status,
     statusChangedAt: toIso(row.status_changed_at),

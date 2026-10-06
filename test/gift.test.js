@@ -14,11 +14,11 @@ const assert = require('node:assert/strict');
 const http = require('node:http');
 const express = require('express');
 
-const { wrapPglite, createPgDatabase, initSchema } = require('../gift/database');
+const { wrapPglite, createPgDatabase, initSchema, SCHEMA_SQL } = require('../gift/database');
 const { GiftEventService, STATUS } = require('../gift/giftEventService');
 const { DonationService } = require('../gift/donationService');
 const { mountGiftBox } = require('../gift');
-const { ticketCount, ticketRemainder, aggregateDonors, weightedPick } = require('../gift/tickets');
+const { ticketCount, ticketRemainder, aggregateDonors, weightedPick, normalizeTicketUnit } = require('../gift/tickets');
 
 let database;
 let cleanup = async () => {};
@@ -51,7 +51,7 @@ beforeEach(async () => {
 });
 
 // 테스트용 서비스: 타이머 끔 + 시계 조작 가능 + 추첨 난수 주입 가능 + 룰렛 쿨다운 0
-async function setup({ target = 1000, prizes = [{ name: '치킨 기프티콘', quantity: 1 }], randomInt, spinMs = 0, winnerHoldMs = 0 } = {}) {
+async function setup({ target = 1000, ticketUnit, prizes = [{ name: '치킨 기프티콘', quantity: 1 }], randomInt, spinMs = 0, winnerHoldMs = 0 } = {}) {
   let clock = new Date('2026-10-05T12:00:00.000Z').getTime();
   const published = [];
   const service = new GiftEventService(database, {
@@ -64,7 +64,7 @@ async function setup({ target = 1000, prizes = [{ name: '치킨 기프티콘', q
   });
   await service.init();
   const donations = new DonationService(service);
-  await service.updateSettings({ targetAmount: target });
+  await service.updateSettings({ targetAmount: target, ...(ticketUnit !== undefined ? { ticketUnit } : {}) });
   await service.setPrizes(prizes);
   await service.start();
   return {
@@ -579,6 +579,160 @@ test('DB 연결 실패 시 선물상자 API만 503, 다른 기능(TOP5 등)과 �
     const giftUp = await fetch(`${base}/api/gift/state`);
     assert.equal(giftUp.status, 200);
     assert.equal((await giftUp.json()).event.roundNo, 1);
+  } finally {
+    server.close();
+  }
+});
+
+// ---------------- 응모권 지급 기준 (ticketUnit) ----------------
+
+test('ticketUnit: 기본값은 100', async () => {
+  const t = await setup();
+  assert.equal((await t.service.getPublicState()).event.ticketUnit, 100);
+  assert.equal((await t.service.getAdminState()).event.ticketUnit, 100);
+});
+
+test('ticketUnit 기본(100): 100개 → 1장', async () => {
+  const t = await setup();
+  await t.donate('철수', 100);
+  assert.equal((await t.donor('철수')).tickets, 1);
+});
+
+test('ticketUnit 50: 100개 → 2장', async () => {
+  const t = await setup({ ticketUnit: 50 });
+  await t.donate('철수', 100);
+  const donor = await t.donor('철수');
+  assert.equal(donor.tickets, 2);
+  assert.equal(donor.remainder, 0);
+});
+
+test('ticketUnit 200: 199→0 / 200→1 / 399→1 / 400→2 / 550→2장', async () => {
+  for (const [amount, tickets] of [[199, 0], [200, 1], [399, 1], [400, 2], [550, 2]]) {
+    assert.equal(ticketCount(amount, 200), tickets, `${amount}개`);
+  }
+  const t = await setup({ ticketUnit: 200 });
+  await t.donate('철수', 550);
+  const donor = await t.donor('철수');
+  assert.equal(donor.tickets, 2);
+  assert.equal(donor.remainder, 150);
+});
+
+test('ticketUnit 100: 같은 사용자 60 + 40 → 누적 100 → 1장', async () => {
+  const t = await setup({ ticketUnit: 100 });
+  await t.donate('철수', 60);
+  await t.donate('철수', 40);
+  const donor = await t.donor('철수');
+  assert.equal(donor.total, 100);
+  assert.equal(donor.tickets, 1);
+});
+
+test('ticketUnit: 후원 알림(donor.tickets)과 룰렛 추첨 가중치도 설정값 기준', async () => {
+  const t = await setup({ ticketUnit: 50, randomInt: () => 0 });
+  await t.donate('A', 150);
+  const alert = t.published.filter((p) => p.type === 'DONATION_RECEIVED').pop();
+  assert.equal(alert.payload.donor.tickets, 3); // 오버레이 후원 알림의 "응모권 N장"
+  await t.donate('B', 50);
+  await t.service.forceRoulette();
+  const state = await t.service.getPublicState();
+  assert.deepEqual(state.drawPool.map((p) => [p.nickname, p.tickets]), [['A', 3], ['B', 1]]);
+  assert.equal(state.stats.totalTickets, 4);
+  const { winner } = await t.service.drawNext();
+  assert.equal(winner.tickets, 3);
+  assert.equal(winner.totalTickets, 4);
+});
+
+test('ticketUnit: 수집 중 변경하면 기존 참여자 응모권도 새 기준으로 다시 계산', async () => {
+  const t = await setup();
+  await t.donate('철수', 250);
+  assert.equal((await t.donor('철수')).tickets, 2);
+  await t.service.updateSettings({ ticketUnit: 50 });
+  assert.equal((await t.donor('철수')).tickets, 5);
+  assert.equal((await t.service.getAdminState()).event.targetAmount, 1000); // 목표는 그대로
+});
+
+test('ticketUnit: 0 / 음수 / 소수 / 문자 / 빈 값은 거절, 숫자 문자열은 허용', async () => {
+  const t = await setup();
+  for (const bad of [0, -1, 1.5, 'abc', '10a', '', null, '1e2', ' ']) {
+    await assert.rejects(t.service.updateSettings({ ticketUnit: bad }), { code: 'INVALID_TICKET_UNIT' }, String(bad));
+  }
+  assert.equal((await t.service.getAdminState()).event.ticketUnit, 100);
+  await t.service.updateSettings({ ticketUnit: '200' });
+  assert.equal((await t.service.getAdminState()).event.ticketUnit, 200);
+});
+
+test('ticketUnit: 룰렛/결과 단계에서는 변경 불가 (추첨 가중치 고정)', async () => {
+  const t = await setup();
+  await t.donate('철수', 100);
+  await t.service.forceRoulette();
+  await assert.rejects(t.service.updateSettings({ ticketUnit: 50 }), { code: 'INVALID_STATUS' });
+});
+
+test('ticketUnit: 서버 재시작 후에도 유지되고, 다음 회차에도 현재 설정값을 사용', async () => {
+  const t = await setup({ ticketUnit: 50 });
+  await t.donate('철수', 100);
+
+  // 같은 DB로 서비스를 새로 만듭니다. (= 서버 재시작)
+  const restarted = new GiftEventService(database, { scheduleTimers: false, spinMs: 0, winnerHoldMs: 0 });
+  await restarted.init();
+  const state = await restarted.getAdminState();
+  assert.equal(state.event.ticketUnit, 50);
+  assert.equal(state.donors.find((d) => d.nickname === '철수').tickets, 2);
+
+  await restarted.forceRoulette();
+  await restarted.drawNext();
+  await restarted.startNextRound();
+  const next = await restarted.getAdminState();
+  assert.equal(next.event.roundNo, 2);
+  assert.equal(next.event.ticketUnit, 50);
+});
+
+test('ticketUnit: 컬럼이 없던 기존 DB → 스키마 보정 후 기존 회차는 100으로 처리', async () => {
+  const { PGlite } = require('@electric-sql/pglite');
+  const legacy = wrapPglite(new PGlite());
+  try {
+    // ticket_unit 컬럼이 없는 예전 gift_event 테이블을 만들고 회차 1개를 넣어둡니다.
+    await legacy.exec(SCHEMA_SQL);
+    await legacy.exec('ALTER TABLE gift_event DROP COLUMN ticket_unit');
+    await legacy.query(
+      `INSERT INTO gift_event (round_no, target_amount, current_amount, winner_count, status, status_changed_at, created_at, updated_at)
+       VALUES (1, 1000, 0, 1, 'READY', now(), now(), now())`
+    );
+
+    await initSchema(legacy); // 서버 시작 시 실행되는 스키마 준비
+    const service = new GiftEventService(legacy, { scheduleTimers: false });
+    await service.init();
+    assert.equal((await service.getAdminState()).event.ticketUnit, 100);
+  } finally {
+    await legacy.close();
+  }
+});
+
+test('normalizeTicketUnit: 값이 없거나 잘못되면 100 fallback', () => {
+  for (const value of [undefined, null, 0, -5, 1.5, 'abc', NaN]) assert.equal(normalizeTicketUnit(value), 100);
+  assert.equal(normalizeTicketUnit(50), 50);
+  assert.equal(ticketCount(100, undefined), 1);
+  assert.equal(ticketCount(100, null), 1);
+  assert.equal(ticketRemainder(150, 0), 50);
+});
+
+test('관리자 API: PUT /settings { ticketUnit } 저장, 잘못된 값은 400, 오버레이 상태에 반영', async () => {
+  process.env.OPERATOR_TOKEN = process.env.OPERATOR_TOKEN || 'test-operator-token';
+  const headers = { 'Content-Type': 'application/json', 'X-Operator-Token': process.env.OPERATOR_TOKEN };
+  const app = express();
+  const { ready } = mountGiftBox(app, { database, serviceOptions: { scheduleTimers: false } });
+  await ready;
+  const server = await listen(app);
+  const base = `http://localhost:${server.address().port}`;
+  try {
+    const ok = await fetch(`${base}/api/gift/admin/settings`, { method: 'PUT', headers, body: JSON.stringify({ ticketUnit: 200 }) });
+    assert.equal(ok.status, 200);
+    assert.equal((await ok.json()).event.ticketUnit, 200);
+    for (const bad of [0, -1, 'abc', 2.5]) {
+      const res = await fetch(`${base}/api/gift/admin/settings`, { method: 'PUT', headers, body: JSON.stringify({ ticketUnit: bad }) });
+      assert.equal(res.status, 400, String(bad));
+    }
+    const overlay = await (await fetch(`${base}/api/gift/state`)).json();
+    assert.equal(overlay.event.ticketUnit, 200); // 오버레이 "{ticketUnit}개당 응모권 1장" 표시값
   } finally {
     server.close();
   }

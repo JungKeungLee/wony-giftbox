@@ -13,20 +13,29 @@ const DONATION_TYPE_LABELS = {
   BATTLE: '대결미션',
 };
 
-// 기본 응모권 단위: 100개 = 응모권 1개
+// 기본 응모권 지급 기준: 100개 = 응모권 1개 (관리자 화면에서 회차별로 바꿀 수 있음, gift_event.ticket_unit)
 const DEFAULT_TICKET_UNIT = 100;
+const MAX_TICKET_UNIT = 1000000;
 
-// 총 후원 개수로 응모권 개수를 계산합니다. (나머지는 버림)
-// 예: 99 → 0, 100 → 1, 199 → 1, 550 → 5
-function ticketCount(totalDonation, ticketUnit = DEFAULT_TICKET_UNIT) {
-  if (!Number.isFinite(totalDonation) || totalDonation <= 0) return 0;
-  return Math.floor(totalDonation / ticketUnit);
+// 저장된 기준값이 없거나(기존 데이터) 잘못된 값이면 기본값 100으로 처리합니다.
+function normalizeTicketUnit(value) {
+  const unit = Number(value);
+  return Number.isInteger(unit) && unit >= 1 ? unit : DEFAULT_TICKET_UNIT;
 }
 
-// 응모권으로 바뀌지 않은 "100개 미만 잔여 개수"입니다. 예: 520 → 20
+// 총 후원 개수로 응모권 개수를 계산합니다. (나머지는 버림)
+// ticketCount = floor(누적 후원 / ticketUnit)
+// 예(기준 100): 99 → 0, 100 → 1, 199 → 1, 550 → 5
+// 예(기준 200): 199 → 0, 200 → 1, 399 → 1, 400 → 2, 550 → 2
+function ticketCount(totalDonation, ticketUnit = DEFAULT_TICKET_UNIT) {
+  if (!Number.isFinite(totalDonation) || totalDonation <= 0) return 0;
+  return Math.floor(totalDonation / normalizeTicketUnit(ticketUnit));
+}
+
+// 응모권으로 바뀌지 않은 "기준 미만 잔여 개수"입니다. 예(기준 100): 520 → 20
 function ticketRemainder(totalDonation, ticketUnit = DEFAULT_TICKET_UNIT) {
   if (!Number.isFinite(totalDonation) || totalDonation <= 0) return 0;
-  return totalDonation % ticketUnit;
+  return totalDonation % normalizeTicketUnit(ticketUnit);
 }
 
 // 후원 내역(여러 건)을 후원자별로 합산합니다.
@@ -109,6 +118,8 @@ module.exports = {
   DONATION_TYPES,
   DONATION_TYPE_LABELS,
   DEFAULT_TICKET_UNIT,
+  MAX_TICKET_UNIT,
+  normalizeTicketUnit,
   ticketCount,
   ticketRemainder,
   aggregateDonors,

@@ -154,6 +154,8 @@ function render() {
   ].filter(Boolean).join(' · ');
 
   if (document.activeElement !== $('targetInput')) $('targetInput').value = event.targetAmount;
+  if (document.activeElement !== $('ticketUnitInput')) $('ticketUnitInput').value = event.ticketUnit;
+  $('ticketUnitHint').textContent = `응모권: 해당 회차 누적 별풍선 ${formatNumber(event.ticketUnit)}개당 1장 (현재 운영은 일반 별풍선만 집계)`;
   if (document.activeElement !== $('amountInput')) $('amountInput').value = event.currentAmount;
 
   if (!prizesDirty) {
@@ -185,6 +187,7 @@ function renderControls() {
   $('forceOpenBtn').disabled = !['READY', 'ACTIVE'].includes(status);
   $('forceRouletteBtn').disabled = !['READY', 'ACTIVE', 'BOX_OPENING'].includes(status);
   $('targetInput').disabled = !['READY', 'ACTIVE'].includes(status);
+  $('ticketUnitInput').disabled = !['READY', 'ACTIVE'].includes(status);
   $('amountInput').disabled = !['READY', 'ACTIVE'].includes(status);
   const prizeLocked = status === 'RESULT' || drawn;
   $('savePrizesBtn').disabled = prizeLocked;
@@ -399,6 +402,16 @@ $('nextRoundBtn').addEventListener('click', (e) => {
 $('settingsForm').addEventListener('submit', (e) => {
   e.preventDefault();
   run(e.submitter, () => api('PUT', '/api/gift/admin/settings', { targetAmount: Number($('targetInput').value) }), '목표 개수를 저장했습니다.');
+});
+
+$('ticketUnitForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const raw = $('ticketUnitInput').value.trim();
+  if (!/^\d+$/.test(raw) || Number(raw) < 1) {
+    notify('응모권 지급 기준은 1 이상의 정수만 입력할 수 있습니다.', 'error');
+    return;
+  }
+  run(e.submitter, () => api('PUT', '/api/gift/admin/settings', { ticketUnit: Number(raw) }), `응모권 지급 기준을 ${formatNumber(Number(raw))}개당 1장으로 저장했습니다.`);
 });
 
 // ---- 상품 편집 ----

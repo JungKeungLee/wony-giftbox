@@ -370,3 +370,7 @@ td.empty { text-align: center; color: var(--c-muted); padding: 20px; }
 .soop-status dd[data-tone='warn'] { color: var(--c-gold); }
 .soop-status dd[data-tone='bad'] { color: var(--c-red); }
 .soop-status dd[data-tone='muted'] { color: var(--c-muted); }
+
+/* ---------- 응모권 지급 기준 입력 ---------- */
+.unit-input { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.unit-input input { width: 120px; }

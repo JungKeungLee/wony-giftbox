@@ -18,7 +18,7 @@
 //   GET  /admin-assets/*                 관리자 JS/CSS
 //   POST /api/gift/admin/login | logout
 //   GET  /api/gift/admin/state
-//   PUT  /api/gift/admin/settings        { targetAmount }
+//   PUT  /api/gift/admin/settings        { targetAmount?, ticketUnit? }
 //   PUT  /api/gift/admin/prizes          { prizes: [{ name, quantity }] }
 //   POST /api/gift/admin/start | stop
 //   POST /api/gift/admin/donations       { nickname, donorId?, type, amount, eventId?, timestamp?, test? }
@@ -160,7 +160,7 @@ function mountGiftBox(app, options = {}) {
   admin.use(requireAdmin);
 
   admin.get('/state', handle(() => service().getAdminState()));
-  admin.put('/settings', handle((req) => service().updateSettings({ targetAmount: req.body.targetAmount })));
+  admin.put('/settings', handle((req) => service().updateSettings({ targetAmount: req.body.targetAmount, ticketUnit: req.body.ticketUnit })));
   admin.put('/prizes', handle((req) => service().setPrizes(req.body.prizes)));
   admin.post('/start', handle(() => service().start()));
   admin.post('/stop', handle(() => service().stop()));
