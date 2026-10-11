@@ -10,7 +10,12 @@
     OBS 브라우저 소스 전용 화면입니다. (권장 크기 1920 x 1080, 배경 투명)
     조회(GET /api/gift/state)와 실시간 수신(GET /api/gift/stream)만 하며,
     관리자 기능(후원 등록, 초기화, 룰렛 실행)은 전혀 호출하지 않습니다.
-    주소 옵션: /overlay?pos=bl  (기본 게이지 위치: tl, tc, tr, bl, bc, br)
+    주소 옵션 (함께 쓸 수 있음, 예: /overlay?pos=mr&scale=0.7&mode=auto)
+      pos   기본 화면 위치: tl tc tr / ml mr / bl bc br (기본 bl). t=위 m=가운데 b=아래, l=왼쪽 c=가운데 r=오른쪽
+      scale 기본 화면 + 선물상자 오픈 연출 크기 (0.3~1.5, 기본 0.75). 룰렛 · 결과 화면은 항상 원래 크기
+      mode  always = 항상 표시 (기본) / auto = 평소엔 숨기고 후원 · 게이지 변화 때만 잠깐 등장
+      hold  auto 에서 마지막 변화 후 보여주는 시간(초, 3~30, 기본 7)
+      mx my 화면 가장자리에서 떨어진 거리(px, 기본 40 / 위 30 · 아래 34). 오른쪽 채팅창 옆에 붙일 때 mx=채팅창 너비+여백
   -->
 </head>
 <body>
@@ -18,28 +23,30 @@
 
     <!-- ① 기본 화면: 선물상자(주인공) + 모금 정보 카드 -->
     <section class="idle-widget" id="idleWidget" hidden>
-      <div class="toast-area" id="toastArea"></div>
-      <div class="idle-row">
-        <div class="hero-box" id="miniBox" aria-hidden="true">
-          <div class="hero-glow"></div>
-          <div class="hero-motion">
-            <img class="hero-img" src="/overlay-assets/assets/giftbox.png" alt="" />
+      <div class="idle-scale">
+        <div class="toast-area" id="toastArea"></div>
+        <div class="idle-row">
+          <div class="hero-box" id="miniBox" aria-hidden="true">
+            <div class="hero-glow"></div>
+            <div class="hero-motion">
+              <img class="hero-img" src="/overlay-assets/assets/giftbox.png" alt="" />
+            </div>
           </div>
-        </div>
-        <div class="idle-card">
-          <div class="idle-head">
-            <span class="idle-title">현재 상자 모금</span>
-            <span class="idle-round" id="idleRound">1회차</span>
-          </div>
-          <div class="idle-amount">
-            <strong id="idleCurrent">0</strong><span class="idle-sep">/</span><span id="idleTarget">1,000</span><span class="idle-unit">개</span>
-          </div>
-          <div class="gauge-track">
-            <div class="gauge-fill" id="gaugeFill"><span class="gauge-paw">🐾</span></div>
-          </div>
-          <div class="idle-bottom">
-            <span class="idle-remaining">남은 <strong id="idleRemaining">1,000</strong>개</span>
-            <span class="idle-hint" id="idleHint">100개당 응모권 1장</span>
+          <div class="idle-card">
+            <div class="idle-head">
+              <span class="idle-title">현재 상자 모금</span>
+              <span class="idle-round" id="idleRound">1회차</span>
+            </div>
+            <div class="idle-amount">
+              <strong id="idleCurrent">0</strong><span class="idle-sep">/</span><span id="idleTarget">1,000</span><span class="idle-unit">개</span>
+            </div>
+            <div class="gauge-track">
+              <div class="gauge-fill" id="gaugeFill"><span class="gauge-paw">🐾</span></div>
+            </div>
+            <div class="idle-bottom">
+              <span class="idle-remaining">남은 <strong id="idleRemaining">1,000</strong>개</span>
+              <span class="idle-hint" id="idleHint">100개당 응모권 1장</span>
+            </div>
           </div>
         </div>
       </div>
@@ -48,15 +55,17 @@
     <!-- ② 목표 달성 → 선물상자 오픈 연출 -->
     <section class="scene scene-opening" id="sceneOpening" hidden>
       <div class="opening-rays" id="openingRays"></div>
-      <div class="opening-headline outline-text" id="openingHeadline">목표 달성!</div>
-      <div class="opening-box-wrap" id="openingBoxWrap">
-        <div class="giftbox-big">
-          <img class="gb-part gb-body" src="/overlay-assets/assets/giftbox.png" alt="" />
-          <img class="gb-part gb-lid" src="/overlay-assets/assets/giftbox.png" alt="" />
+      <div class="opening-content">
+        <div class="opening-headline outline-text" id="openingHeadline">목표 달성!</div>
+        <div class="opening-box-wrap" id="openingBoxWrap">
+          <div class="giftbox-big">
+            <img class="gb-part gb-body" src="/overlay-assets/assets/giftbox.png" alt="" />
+            <img class="gb-part gb-lid" src="/overlay-assets/assets/giftbox.png" alt="" />
+          </div>
+          <div class="opening-countdown" id="openingCountdown"></div>
         </div>
-        <div class="opening-countdown" id="openingCountdown"></div>
+        <div class="opening-sub" id="openingSub"></div>
       </div>
-      <div class="opening-sub" id="openingSub"></div>
       <div class="opening-flash" id="openingFlash"></div>
     </section>
 

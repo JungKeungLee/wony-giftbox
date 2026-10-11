@@ -31,6 +31,9 @@
   --sticker-ring: 0 0 0 5px #ffffff;
   --sticker-shadow: 0 14px 30px rgba(84, 48, 4, 0.38);
 
+  /* 기본 화면 · 오픈 연출 크기 (주소 ?scale= 로 바꿈, overlay.js 가 설정). 룰렛 · 결과 화면에는 적용하지 않음 */
+  --s: 0.75;
+
   --font-cute: 'Jua', 'Pretendard', 'Malgun Gothic', sans-serif;
   --font-base: 'Pretendard', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
 }
@@ -70,18 +73,54 @@ img { display: block; user-select: none; -webkit-user-drag: none; }
 }
 
 /* ===================== ① 기본 화면 ===================== */
+/* 바깥(.idle-widget): 위치 + 등장/숨김 움직임,  안쪽(.idle-scale): 크기(--s)
+   크기는 위치한 모서리를 기준으로 줄어들어서, 줄여도 화면 가장자리와의 거리(--mx, --my)는 그대로입니다. */
 .idle-widget {
   position: absolute;
   width: 700px;
+  height: 272px;
   animation: widgetIn 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.25);
 }
 
-.idle-widget[data-pos='tl'] { left: 40px; top: 30px; }
-.idle-widget[data-pos='tc'] { left: 610px; top: 30px; }
-.idle-widget[data-pos='tr'] { right: 40px; top: 30px; }
-.idle-widget[data-pos='bl'] { left: 40px; bottom: 34px; }
-.idle-widget[data-pos='bc'] { left: 610px; bottom: 34px; }
-.idle-widget[data-pos='br'] { right: 40px; bottom: 34px; }
+.idle-widget[data-pos='tl'] { left: var(--mx, 40px); top: var(--my, 30px); }
+.idle-widget[data-pos='tc'] { left: 610px; top: var(--my, 30px); }
+.idle-widget[data-pos='tr'] { right: var(--mx, 40px); top: var(--my, 30px); }
+.idle-widget[data-pos='ml'] { left: var(--mx, 40px); top: 404px; }
+.idle-widget[data-pos='mr'] { right: var(--mx, 40px); top: 404px; }
+.idle-widget[data-pos='bl'] { left: var(--mx, 40px); bottom: var(--my, 34px); }
+.idle-widget[data-pos='bc'] { left: 610px; bottom: var(--my, 34px); }
+.idle-widget[data-pos='br'] { right: var(--mx, 40px); bottom: var(--my, 34px); }
+
+.idle-scale {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform: scale(var(--s));
+}
+
+.idle-widget[data-pos='tl'] .idle-scale { transform-origin: 0 0; }
+.idle-widget[data-pos='tc'] .idle-scale { transform-origin: 50% 0; }
+.idle-widget[data-pos='tr'] .idle-scale { transform-origin: 100% 0; }
+.idle-widget[data-pos='ml'] .idle-scale { transform-origin: 0 50%; }
+.idle-widget[data-pos='mr'] .idle-scale { transform-origin: 100% 50%; }
+.idle-widget[data-pos='bl'] .idle-scale { transform-origin: 0 100%; }
+.idle-widget[data-pos='bc'] .idle-scale { transform-origin: 50% 100%; }
+.idle-widget[data-pos='br'] .idle-scale { transform-origin: 100% 100%; }
+
+/* mode=auto: 평소에는 숨겨 두었다가(is-tucked) 후원 · 게이지 변화 때 미끄러져 등장
+   위쪽 위치는 위에서 내려오고, 아래쪽은 아래에서 올라오고, 가운데(ml/mr)는 옆에서 들어옵니다. */
+.idle-widget[data-mode='auto'] {
+  animation: none;
+  transition: transform 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.12), opacity 0.45s ease;
+}
+
+.idle-widget.is-tucked { opacity: 0; transition: transform 0.6s cubic-bezier(0.5, 0, 0.75, 0), opacity 0.5s ease 0.1s; }
+.idle-widget.is-tucked[data-pos^='t'] { transform: translateY(-120px); }
+.idle-widget.is-tucked[data-pos^='b'] { transform: translateY(120px); }
+.idle-widget.is-tucked[data-pos='ml'] { transform: translateX(-160px); }
+.idle-widget.is-tucked[data-pos='mr'] { transform: translateX(160px); }
+/* 숨어 있는 동안은 반복 움직임을 멈춰 OBS 부담을 줄입니다 */
+.idle-widget.is-tucked * { animation-play-state: paused; }
 
 @keyframes widgetIn {
   from { opacity: 0; transform: translateY(24px) scale(0.92); }
@@ -282,6 +321,8 @@ img { display: block; user-select: none; -webkit-user-drag: none; }
 }
 
 .idle-widget[data-pos^='t'] .toast-area { bottom: auto; top: calc(100% + 18px); }
+/* 오른쪽 위치는 알림도 오른쪽(화면 가장자리 쪽)에 붙입니다 */
+.idle-widget[data-pos$='r'] .toast-area { align-items: flex-end; }
 
 .toast {
   --accent: var(--c-star);
@@ -362,6 +403,14 @@ img { display: block; user-select: none; -webkit-user-drag: none; }
 @keyframes sceneOut { to { opacity: 0; transform: scale(1.03); } }
 
 /* ===================== ② 오픈 연출 ===================== */
+/* 제목 · 상자 · 카운트다운 · 안내 문구는 --s 크기로 (빛줄기 · 섬광 · 배경은 화면 전체 그대로) */
+.opening-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: scale(var(--s));
+}
+
 .opening-headline {
   font-size: 92px;
   animation: headlineIn 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.5) both;

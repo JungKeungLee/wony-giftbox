@@ -4,10 +4,35 @@
 // - 모든 판단(목표 달성, 당첨자)은 서버가 하고, 이 화면은 "보여주기"만 합니다.
 // - OBS 새로고침/서버 재시작 후에도 서버가 보내주는 STATE_SYNC와 서버 시각을 기준으로 이어서 보여줍니다.
 // - 관리자 API는 전혀 호출하지 않습니다.
+//
+// 주소 옵션 (overlay.html 머리말 참고)
+//   pos   기본 화면 위치 tl tc tr / ml mr / bl bc br (기본 bl)
+//   scale 기본 화면 + 오픈 연출 크기 0.3~1.5 (기본 0.75). 룰렛 · 결과 화면은 항상 원래 크기
+//   mode  always(기본) | auto (평소엔 숨김, 후원 · 게이지 변화 때 잠깐 등장 → hold 초 뒤 다시 숨김)
+//   hold  auto 에서 보여주는 시간(초) 3~30 (기본 7)
+//   mx my 화면 가장자리와의 거리(px)
+// 숨김은 "보여주기"만 바꿉니다. 후원 수신 · 응모권 계산 · 저장은 모두 서버에서 그대로 진행됩니다.
 
 const params = new URLSearchParams(window.location.search);
-const WIDGET_POSITIONS = ['tl', 'tc', 'tr', 'bl', 'bc', 'br'];
+const WIDGET_POSITIONS = ['tl', 'tc', 'tr', 'ml', 'mr', 'bl', 'bc', 'br'];
 const widgetPos = WIDGET_POSITIONS.includes(params.get('pos')) ? params.get('pos') : 'bl';
+const DISPLAY_MODES = ['always', 'auto'];
+const displayMode = DISPLAY_MODES.includes(params.get('mode')) ? params.get('mode') : 'always';
+const isAutoMode = displayMode === 'auto';
+
+// 숫자 옵션: 비었거나 숫자가 아니면 기본값, 범위를 벗어나면 가장 가까운 값
+function numberParam(name, min, max, fallback) {
+  const raw = params.get(name);
+  if (raw == null || raw.trim() === '') return fallback;
+  const value = Number(raw);
+  return Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
+}
+
+const DEFAULT_SCALE = 0.75;
+const widgetScale = numberParam('scale', 0.3, 1.5, DEFAULT_SCALE);
+const autoHoldMs = numberParam('hold', 3, 30, 7) * 1000;
+const marginX = numberParam('mx', 0, 1600, null);
+const marginY = numberParam('my', 0, 900, null);
 
 const TYPE_LABELS = { STAR: '별풍선', CHALLENGE: '도전미션', BATTLE: '대결미션' };
 const TYPE_ICONS = { STAR: '⭐', CHALLENGE: '🔥', BATTLE: '⚔️' };
@@ -58,6 +83,10 @@ const el = {
 };
 
 el.idleWidget.dataset.pos = widgetPos;
+el.idleWidget.dataset.mode = displayMode;
+document.documentElement.style.setProperty('--s', String(widgetScale));
+if (marginX != null) el.idleWidget.style.setProperty('--mx', `${marginX}px`);
+if (marginY != null) el.idleWidget.style.setProperty('--my', `${marginY}px`);
 
 // ---------------------------------------------------------------------------
 // 공통 도우미
@@ -136,7 +165,82 @@ function showScene(name) {
     node.hidden = key !== name;
   }
   currentScene = name;
-  if (name !== 'idle') clearToasts();
+  if (name !== 'idle') {
+    clearToasts();
+    resetAutoPeek();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// mode=auto: 기본 화면을 평소엔 숨겨 두고, 후원 · 게이지 변화 때 잠깐 보여줍니다.
+// 목표 달성 이후(오픈 연출 · 룰렛 · 결과)는 각자 화면이 따로 있어 숨김과 상관없이 항상 보이고,
+// 목표를 채워 BOX_OPENING 으로 넘어가는 중에는 기본 화면도 숨기지 않습니다.
+// ---------------------------------------------------------------------------
+
+const SLIDE_IN_MS = 450; // 등장 움직임이 거의 끝난 뒤에 숫자 · 게이지를 바꿔서 변화가 보이게
+let widgetTucked = isAutoMode;
+let tuckTimer = null;
+let revealUntil = 0;
+if (isAutoMode) el.idleWidget.classList.add('is-tucked');
+
+// 숨겨져 있으면 꺼냅니다. 반환값: 등장 움직임이 끝날 때까지 남은 시간(ms)
+function revealWidget() {
+  if (!isAutoMode) return 0;
+  clearTimeout(tuckTimer);
+  tuckTimer = null;
+  if (widgetTucked) {
+    widgetTucked = false;
+    void el.idleWidget.offsetWidth; // 방금 화면에 나타난 경우에도 미끄러지는 움직임이 보이도록
+    el.idleWidget.classList.remove('is-tucked');
+    revealUntil = Date.now() + SLIDE_IN_MS;
+  }
+  return Math.max(0, revealUntil - Date.now());
+}
+
+function scheduleTuck(delay = autoHoldMs) {
+  if (!isAutoMode) return;
+  clearTimeout(tuckTimer);
+  tuckTimer = setTimeout(tryTuck, delay);
+}
+
+function tryTuck() {
+  tuckTimer = null;
+  // 기본 화면이 아니거나 목표 달성 이후 단계면 숨기지 않습니다.
+  if (currentScene !== 'idle' || !latestState || latestState.event.status !== 'ACTIVE') return;
+  // 후원 알림이 남아 있으면 다 보여준 뒤에 숨깁니다.
+  if (toastRunning) return scheduleTuck(1000);
+  widgetTucked = true;
+  el.idleWidget.classList.add('is-tucked');
+}
+
+// 잠깐 보여주기: 꺼내고, hold 뒤 숨김 예약. 반환값은 revealWidget 과 같음
+function peekWidget() {
+  const lead = revealWidget();
+  scheduleTuck();
+  return lead;
+}
+
+function resetAutoPeek() {
+  if (!isAutoMode) return;
+  clearTimeout(tuckTimer);
+  tuckTimer = null;
+  widgetTucked = true;
+  el.idleWidget.classList.add('is-tucked');
+}
+
+// 기본 화면 갱신. auto 에서 숨겨져 있었다면 먼저 미끄러져 나온 뒤 숫자 · 게이지가 바뀝니다.
+function showIdleChange(update) {
+  const lead = isAutoMode ? peekWidget() : 0;
+  if (lead > 0) setTimeout(() => currentScene === 'idle' && update(), lead);
+  else update();
+}
+
+// 게이지에 보이는 값이 바뀌었는지 (auto 에서 등장할지 판단)
+function gaugeChanged(prev, next) {
+  if (!prev) return true;
+  const a = prev.event;
+  const b = next.event;
+  return a.displayAmount !== b.displayAmount || a.targetAmount !== b.targetAmount || a.ticketUnit !== b.ticketUnit || a.roundNo !== b.roundNo;
 }
 
 // ---------------------------------------------------------------------------
@@ -681,6 +785,7 @@ const confetti = (() => {
 
 let latestState = null;
 let syncedSignature = null;
+let initialSyncDone = false;
 
 function signatureOf(state) {
   return `${state.event.id}|${state.event.status}|${state.winners.length}`;
@@ -714,6 +819,8 @@ function resync(state) {
   if (status === 'ACTIVE') {
     showScene('idle');
     renderIdle(state);
+    // auto: 처음 연결(OBS 새로고침)은 숨긴 채로, 회차 시작처럼 진행 중에 바뀐 경우엔 잠깐 보여줌
+    if (isAutoMode && initialSyncDone) peekWidget();
     return;
   }
   if (status === 'BOX_OPENING') {
@@ -743,18 +850,22 @@ function handleMessage(message) {
   const state = message.state;
   if (!state) return;
   serverOffsetMs = Date.parse(state.serverTime) - Date.now();
+  const prevState = latestState;
   latestState = state;
 
   switch (message.type) {
     case 'STATE_SYNC':
       resync(state);
+      initialSyncDone = true;
       break;
 
     case 'DONATION_RECEIVED':
       if (state.event.status === 'ACTIVE' || state.event.status === 'BOX_OPENING') {
         if (currentScene === 'idle') {
-          renderIdle(state, { bump: true });
-          queueToast(message.donation, message.donor);
+          showIdleChange(() => {
+            renderIdle(latestState, { bump: true });
+            queueToast(message.donation, message.donor);
+          });
         }
       }
       break;
@@ -767,13 +878,21 @@ function handleMessage(message) {
       if (signatureOf(state) !== syncedSignature) {
         if (['READY', 'ACTIVE', 'FINISHED'].includes(state.event.status)) resync(state);
       }
-      else if (currentScene === 'idle') renderIdle(state);
+      else if (currentScene === 'idle') {
+        if (isAutoMode && gaugeChanged(prevState, state)) showIdleChange(() => renderIdle(latestState));
+        else renderIdle(state);
+      }
       else if (currentScene === 'roulette' && state.event.status === 'ROULETTE' && el.winnerBanner.hidden) renderRoulette(state);
       break;
 
     case 'GOAL_REACHED':
       // 게이지를 100%로 채운 모습을 잠깐 보여준 뒤 BOX_OPEN 연출로 넘어갑니다.
-      if (currentScene === 'idle') renderIdle(state, { bump: true });
+      // auto: 숨겨져 있었다면 꺼내고, 이후로는 숨기지 않습니다 (오픈 연출로 이어짐)
+      if (currentScene === 'idle') {
+        const lead = revealWidget();
+        if (lead > 0) setTimeout(() => currentScene === 'idle' && renderIdle(latestState, { bump: true }), lead);
+        else renderIdle(state, { bump: true });
+      }
       break;
 
     case 'BOX_OPEN': {
@@ -781,6 +900,7 @@ function handleMessage(message) {
       const elapsed = serverNow() - Date.parse(state.event.statusChangedAt);
       enqueue(async (gen) => {
         // 목표를 채운 마지막 후원 알림과 100% 게이지를 잠깐 보여준 뒤 오픈 연출로 넘어갑니다.
+        if (currentScene === 'idle') revealWidget(); // auto 로 숨겨져 있었어도 100% 게이지를 보여줌
         const lead = currentScene === 'idle' ? 1600 : 0;
         if (lead && !(await wait(lead, gen))) return;
         await playOpening(state, Math.max(elapsed, 0) + lead, gen);
