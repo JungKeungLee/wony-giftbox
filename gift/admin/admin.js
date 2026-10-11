@@ -570,6 +570,121 @@ new ResizeObserver(() => {
   previewIframe.style.transform = `scale(${previewFrame.clientWidth / 1920})`;
 }).observe(previewFrame);
 
+// ---- 오버레이 설정 → OBS 주소 만들기 ----
+// 오버레이는 지금처럼 주소 옵션(pos, scale, mode, hold)으로 동작하고, 여기서는 그 주소를 골라서 만들어 줍니다.
+// 선택값은 이 브라우저(localStorage)에만 저장합니다. 서버 · DB · 진행 중인 이벤트에는 영향이 없습니다.
+const OVERLAY_SETTINGS_KEY = 'giftOverlaySettings';
+const OVERLAY_DEFAULTS = { pos: 'bl', scale: '0.75', customPercent: 75, mode: 'always', hold: '7' };
+const OVERLAY_POSITIONS = ['tl', 'tc', 'tr', 'ml', 'mr', 'bl', 'bc', 'br'];
+const OVERLAY_SCALES = ['0.5', '0.6', '0.7', '0.75', '0.8', '0.9', '1', 'custom'];
+const OVERLAY_HOLDS = ['3', '5', '7', '10', '15', '20', '30'];
+
+function loadOverlaySettings() {
+  let saved = {};
+  try {
+    saved = JSON.parse(localStorage.getItem(OVERLAY_SETTINGS_KEY) || '{}') || {};
+  } catch {
+    saved = {};
+  }
+  const pick = (value, list, fallback) => (list.includes(String(value)) ? String(value) : fallback);
+  const percent = Number(saved.customPercent);
+  return {
+    pos: pick(saved.pos, OVERLAY_POSITIONS, OVERLAY_DEFAULTS.pos),
+    scale: pick(saved.scale, OVERLAY_SCALES, OVERLAY_DEFAULTS.scale),
+    customPercent: Number.isFinite(percent) ? Math.min(150, Math.max(30, Math.round(percent))) : OVERLAY_DEFAULTS.customPercent,
+    mode: saved.mode === 'auto' ? 'auto' : 'always',
+    hold: pick(saved.hold, OVERLAY_HOLDS, OVERLAY_DEFAULTS.hold),
+  };
+}
+
+function saveOverlaySettings(settings) {
+  try {
+    localStorage.setItem(OVERLAY_SETTINGS_KEY, JSON.stringify(settings));
+  } catch {
+    // 저장이 막힌 브라우저(시크릿 창 등)에서는 이번 화면에서만 유지
+  }
+}
+
+function readOverlayForm() {
+  const percent = Number($('overlayScaleCustom').value);
+  return {
+    pos: $('overlayPos').value,
+    scale: $('overlayScale').value,
+    customPercent: Number.isFinite(percent) && percent > 0 ? Math.min(150, Math.max(30, Math.round(percent))) : OVERLAY_DEFAULTS.customPercent,
+    mode: $('overlayMode').value,
+    hold: $('overlayHold').value,
+  };
+}
+
+// 예) https://wony-giftbox.onrender.com/overlay?pos=tr&scale=0.7&mode=auto&hold=10  (항상 표시면 mode · hold 없음)
+function overlayUrlFor(settings) {
+  const scale = settings.scale === 'custom' ? String(settings.customPercent / 100) : settings.scale;
+  const query = [`pos=${settings.pos}`, `scale=${scale}`];
+  if (settings.mode === 'auto') query.push('mode=auto', `hold=${settings.hold}`);
+  return `${window.location.origin}/overlay?${query.join('&')}`;
+}
+
+let overlayPreviewTimer = null;
+function applyOverlaySettings({ save = true } = {}) {
+  const settings = readOverlayForm();
+  const custom = settings.scale === 'custom';
+  $('overlayScaleCustomWrap').hidden = !custom;
+  if (custom) $('overlayScaleCustom').value = settings.customPercent;
+  // 표시 시간은 "별풍선 들어올 때만 표시"에서만 사용
+  $('overlayHold').disabled = settings.mode !== 'auto';
+  $('overlayModeHint').textContent = settings.mode === 'auto'
+    ? `평소에는 숨겨 두고, 후원이 들어오거나 게이지가 바뀌면 잠깐 나타났다가 ${settings.hold}초 뒤 다시 숨습니다. 목표 달성 · 룰렛 · 결과는 항상 보입니다. (아래 미리보기에서는 테스트 후원으로 확인할 수 있어요)`
+    : '선물상자와 게이지를 항상 표시합니다.';
+  const url = overlayUrlFor(settings);
+  $('overlayUrl').value = url;
+  $('overlayOpenLink').href = url;
+  if (save) saveOverlaySettings(settings);
+  // 미리보기는 같은 화면 주소(경로)로 바꿔서 다시 불러옴. 연속으로 바꿀 때는 마지막 값만
+  clearTimeout(overlayPreviewTimer);
+  overlayPreviewTimer = setTimeout(() => {
+    const path = url.slice(window.location.origin.length);
+    if (previewIframe.getAttribute('src') !== path) previewIframe.setAttribute('src', path);
+  }, 300);
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    // 클립보드 API를 쓸 수 없는 환경: 선택 후 복사
+    const input = $('overlayUrl');
+    input.focus();
+    input.select();
+    try {
+      return document.execCommand('copy');
+    } catch {
+      return false;
+    }
+  }
+}
+
+(function initOverlaySettings() {
+  const settings = loadOverlaySettings();
+  $('overlayPos').value = settings.pos;
+  $('overlayScale').value = settings.scale;
+  $('overlayScaleCustom').value = settings.customPercent;
+  $('overlayMode').value = settings.mode;
+  $('overlayHold').value = settings.hold;
+  applyOverlaySettings({ save: false });
+  for (const id of ['overlayPos', 'overlayScale', 'overlayMode', 'overlayHold']) {
+    $(id).addEventListener('change', () => applyOverlaySettings());
+  }
+  $('overlayScaleCustom').addEventListener('change', () => applyOverlaySettings());
+  $('copyOverlayUrlBtn').addEventListener('click', async () => {
+    if (await copyText($('overlayUrl').value)) notify('오버레이 주소를 복사했습니다. OBS 브라우저 소스 URL에 붙여 넣으세요.');
+    else notify('복사하지 못했습니다. 주소를 직접 선택해서 복사해 주세요.', 'error');
+  });
+  $('openOverlayBtn').addEventListener('click', () => {
+    window.open($('overlayUrl').value, '_blank', 'noopener');
+  });
+})();
+
 // ---- 실시간 연결 ----
 function connectStream() {
   const source = new EventSource('/api/gift/stream');
